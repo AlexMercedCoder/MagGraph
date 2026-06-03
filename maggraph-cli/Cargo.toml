@@ -1,0 +1,18 @@
+[package]
+name = "maggraph-cli"
+description = "CLI for MagGraph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "maggraph"
+path = "src/main.rs"
+
+[dependencies]
+maggraph = { path = "../maggraph" }
+clap.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
