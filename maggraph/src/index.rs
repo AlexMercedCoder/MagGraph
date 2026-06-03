@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 use crate::error::{MagGraphError, Result};
+use crate::graph::GraphAdjacency;
 use crate::node::{NewNode, Node, NodeMetadata};
 
 /// Lightweight index entry for a graph node (metadata + path, no body).
@@ -112,6 +113,11 @@ impl GraphIndex {
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &NodeIndexEntry)> {
         self.by_id.iter().map(|(id, entry)| (id.as_str(), entry))
+    }
+
+    /// Build directed adjacency from frontmatter `links` and body wikilinks.
+    pub fn adjacency(&self) -> Result<GraphAdjacency> {
+        GraphAdjacency::from_index(self)
     }
 
     /// Read the full node (including body) by id.
