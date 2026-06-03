@@ -16,6 +16,7 @@ This folder holds implementation planning and progress tracking for [MagGraph](h
 | [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) | Phased roadmap, dependencies, deliverables, and acceptance criteria |
 | [`PROGRESS.md`](./PROGRESS.md) | Living checklist — update status as work lands |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Condensed architecture reference derived from the PRD |
+| [`WIKILINKS.md`](./WIKILINKS.md) | Wikilink syntax, edge resolution, and traversal |
 
 ## How to use this folder
 

@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-03 (Phase 2)  
+**Last updated:** 2026-06-03 (Phase 3)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -14,7 +14,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 0 | Repository & foundation | 🟡 Partial | Workspace + CI landed with Phase 1 |
 | 1 | Configuration | ✅ Complete | Config loader, validation, examples |
 | 2 | Markdown node model | ✅ Complete | Node parser, GraphIndex, CRUD |
-| 3 | Edges & traversal | ⬜ Not started | |
+| 3 | Edges & traversal | ✅ Complete | Wikilinks, adjacency, BFS/DFS, Markdown reports |
 | 4 | Lakehouse mode | ⬜ Not started | |
 | 5 | Git sync & roles | ⬜ Not started | |
 | 6 | CLI | ⬜ Not started | |
@@ -67,11 +67,11 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 3.1 | Wikilink parser | ⬜ |
-| 3.2 | Adjacency from links + wikilinks | ⬜ |
-| 3.3 | Traversal API | ⬜ |
-| 3.4 | mmap / perf optimization | ⬜ |
-| 3.5 | Markdown report formatter | ⬜ |
+| 3.1 | Wikilink parser | ✅ |
+| 3.2 | Adjacency from links + wikilinks | ✅ |
+| 3.3 | Traversal API | ✅ |
+| 3.4 | mmap / perf optimization | ⏸️ | In-memory adjacency; smoke benchmark &lt;1ms on example graph |
+| 3.5 | Markdown report formatter | ✅ |
 
 ---
 
@@ -176,3 +176,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-03 | Added `planning/` with README, ARCHITECTURE, IMPLEMENTATION_PLAN, PROGRESS from PRD |
 | 2026-06-03 | Phase 2: `Node` frontmatter parser, `GraphIndex` scan/CRUD, round-trip tests, lakehouse example node |
 | 2026-06-03 | Phase 1: `maggraph.toml` loader, validation, graph root init, `examples/` fixtures |
+| 2026-06-03 | Phase 3: wikilink parser, `GraphAdjacency`, BFS/DFS `traverse`, `TraversalResult::to_markdown`, `planning/WIKILINKS.md` |
