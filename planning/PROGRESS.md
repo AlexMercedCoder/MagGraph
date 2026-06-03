@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-03 (Phase 1)  
+**Last updated:** 2026-06-03 (Phase 2)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -13,7 +13,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 |-------|------|--------|-------|
 | 0 | Repository & foundation | 🟡 Partial | Workspace + CI landed with Phase 1 |
 | 1 | Configuration | ✅ Complete | Config loader, validation, examples |
-| 2 | Markdown node model | ⬜ Not started | |
+| 2 | Markdown node model | ✅ Complete | Node parser, GraphIndex, CRUD |
 | 3 | Edges & traversal | ⬜ Not started | |
 | 4 | Lakehouse mode | ⬜ Not started | |
 | 5 | Git sync & roles | ⬜ Not started | |
@@ -55,11 +55,11 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 2.1 | Frontmatter → `Node` | ⬜ |
-| 2.2 | Scan `root_path` | ⬜ |
-| 2.3 | In-memory index | ⬜ |
-| 2.4 | Node CRUD | ⬜ |
-| 2.5 | Markdown round-trip | ⬜ |
+| 2.1 | Frontmatter → `Node` | ✅ |
+| 2.2 | Scan `root_path` | ✅ |
+| 2.3 | In-memory index | ✅ |
+| 2.4 | Node CRUD | ✅ |
+| 2.5 | Markdown round-trip | ✅ |
 
 ---
 
@@ -174,4 +174,5 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | Date | Change |
 |------|--------|
 | 2026-06-03 | Added `planning/` with README, ARCHITECTURE, IMPLEMENTATION_PLAN, PROGRESS from PRD |
+| 2026-06-03 | Phase 2: `Node` frontmatter parser, `GraphIndex` scan/CRUD, round-trip tests, lakehouse example node |
 | 2026-06-03 | Phase 1: `maggraph.toml` loader, validation, graph root init, `examples/` fixtures |
