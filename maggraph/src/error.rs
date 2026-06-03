@@ -61,6 +61,18 @@ pub enum MagGraphError {
 
     #[error("graph index error: {0}")]
     Index(String),
+
+    #[error("lakehouse error: {0}")]
+    Lakehouse(String),
+
+    #[error("content resolve failed for {uri}: {message}")]
+    ContentResolve { uri: String, message: String },
+
+    #[error("content scheme {scheme} is not allowed")]
+    DisallowedScheme { scheme: String },
+
+    #[error("node {id} has no external source to resolve")]
+    MissingSource { id: String },
 }
 
 pub type Result<T> = std::result::Result<T, MagGraphError>;

@@ -5,6 +5,10 @@ root_path = "./knowledge_graph"
 [lakehouse]
 remote_sources = [{ uri = "s3://corp-data/lake", format = "parquet" }]
 
+[lakehouse.cache]
+ttl_secs = 300
+max_bytes = 10485760
+
 [sync]
 role = "follower"
 remote_url = "git@github.com:org/maggraph-sync.git"

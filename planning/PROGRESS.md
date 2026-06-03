@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-03 (Phase 3)  
+**Last updated:** 2026-06-03 (Phase 4)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -15,7 +15,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 1 | Configuration | ✅ Complete | Config loader, validation, examples |
 | 2 | Markdown node model | ✅ Complete | Node parser, GraphIndex, CRUD |
 | 3 | Edges & traversal | ✅ Complete | Wikilinks, adjacency, BFS/DFS, Markdown reports |
-| 4 | Lakehouse mode | ⬜ Not started | |
+| 4 | Lakehouse mode | ✅ Complete | ContentResolver, URI rules, cache, Parquet metadata MVP |
 | 5 | Git sync & roles | ⬜ Not started | |
 | 6 | CLI | ⬜ Not started | |
 | 7 | Python bindings | ⬜ Not started | |
@@ -79,11 +79,11 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 4.1 | Lakehouse read path | ⬜ |
-| 4.2 | URI resolution rules | ⬜ |
-| 4.3 | Pluggable `ContentResolver` | ⬜ |
-| 4.4 | Parquet metadata MVP | ⬜ |
-| 4.5 | External fetch cache | ⬜ |
+| 4.1 | Lakehouse read path | ✅ |
+| 4.2 | URI resolution rules | ✅ |
+| 4.3 | Pluggable `ContentResolver` | ✅ |
+| 4.4 | Parquet metadata MVP | ✅ |
+| 4.5 | External fetch cache | ✅ |
 
 ---
 
@@ -177,3 +177,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-03 | Phase 2: `Node` frontmatter parser, `GraphIndex` scan/CRUD, round-trip tests, lakehouse example node |
 | 2026-06-03 | Phase 1: `maggraph.toml` loader, validation, graph root init, `examples/` fixtures |
 | 2026-06-03 | Phase 3: wikilink parser, `GraphAdjacency`, BFS/DFS `traverse`, `TraversalResult::to_markdown`, `planning/WIKILINKS.md` |
+| 2026-06-03 | Phase 4: `LakehouseReader`, `ContentResolver` (file/s3/http), URI resolution, cache, `planning/LAKEHOUSE.md` |
