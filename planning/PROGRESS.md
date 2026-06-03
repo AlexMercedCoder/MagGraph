@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-03  
+**Last updated:** 2026-06-03 (Phase 1)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -11,8 +11,8 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | Phase | Name | Status | Notes |
 |-------|------|--------|-------|
-| 0 | Repository & foundation | ⬜ Not started | No Rust crate yet |
-| 1 | Configuration | ⬜ Not started | |
+| 0 | Repository & foundation | 🟡 Partial | Workspace + CI landed with Phase 1 |
+| 1 | Configuration | ✅ Complete | Config loader, validation, examples |
 | 2 | Markdown node model | ⬜ Not started | |
 | 3 | Edges & traversal | ⬜ Not started | |
 | 4 | Lakehouse mode | ⬜ Not started | |
@@ -31,12 +31,12 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 0.1 | Cargo workspace (lib + binaries) | ⬜ |
-| 0.2 | Core dependencies | ⬜ |
+| 0.1 | Cargo workspace (lib + binaries) | ✅ |
+| 0.2 | Core dependencies | 🟡 |
 | 0.3 | libgit2 integration stub | ⬜ |
-| 0.4 | Error types & tracing | ⬜ |
-| 0.5 | CI (fmt, clippy, test) | ⬜ |
-| 0.6 | Contributor docs in README | ⬜ |
+| 0.4 | Error types & tracing | 🟡 |
+| 0.5 | CI (fmt, clippy, test) | ✅ |
+| 0.6 | Contributor docs in README | 🟡 |
 
 ---
 
@@ -44,10 +44,10 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 1.1 | TOML schema | ⬜ |
-| 1.2 | Config validation | ⬜ |
-| 1.3 | Graph root initialization | ⬜ |
-| 1.4 | Example config + sample graph | ⬜ |
+| 1.1 | TOML schema | ✅ |
+| 1.2 | Config validation | ✅ |
+| 1.3 | Graph root initialization | ✅ |
+| 1.4 | Example config + sample graph | ✅ |
 
 ---
 
@@ -174,3 +174,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | Date | Change |
 |------|--------|
 | 2026-06-03 | Added `planning/` with README, ARCHITECTURE, IMPLEMENTATION_PLAN, PROGRESS from PRD |
+| 2026-06-03 | Phase 1: `maggraph.toml` loader, validation, graph root init, `examples/` fixtures |

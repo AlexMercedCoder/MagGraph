@@ -1,0 +1,7 @@
+[storage]
+mode = "local"
+root_path = "./knowledge_graph"
+
+[sync]
+role = "leader"
+remote_url = "git@github.com:example/maggraph-sync.git"

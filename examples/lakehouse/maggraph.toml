@@ -1,0 +1,10 @@
+[storage]
+mode = "lakehouse"
+root_path = "./knowledge_graph"
+
+[lakehouse]
+remote_sources = [{ uri = "s3://corp-data/lake", format = "parquet" }]
+
+[sync]
+role = "follower"
+remote_url = "git@github.com:org/maggraph-sync.git"
