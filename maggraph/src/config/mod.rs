@@ -1,8 +1,8 @@
 mod schema;
 
 pub use schema::{
-    LakehouseConfig, MagGraphConfig, RemoteSource, ResolvedConfig, StorageConfig, StorageMode,
-    SyncConfig, SyncRole,
+    LakehouseCacheConfig, LakehouseConfig, MagGraphConfig, RemoteSource, ResolvedConfig,
+    StorageConfig, StorageMode, SyncConfig, SyncRole,
 };
 
 use std::fs;
@@ -307,6 +307,31 @@ root_path = "./knowledge_graph"
             .expect_err("expected init error");
 
         assert!(matches!(err, MagGraphError::GraphRootInit { .. }));
+    }
+
+    #[test]
+    fn loads_lakehouse_cache_defaults() {
+        let temp = TempDir::new().expect("temp dir");
+        let config_path = write_config(
+            temp.path(),
+            r#"
+[storage]
+mode = "lakehouse"
+root_path = "./knowledge_graph"
+
+[lakehouse]
+remote_sources = [{ uri = "s3://corp-data/lake", format = "parquet" }]
+
+[lakehouse.cache]
+ttl_secs = 60
+max_bytes = 4096
+"#,
+        );
+
+        let resolved = MagGraphConfig::load(&config_path).expect("load");
+        let cache = &resolved.config.lakehouse.as_ref().unwrap().cache;
+        assert_eq!(cache.ttl_secs, 60);
+        assert_eq!(cache.max_bytes, 4096);
     }
 
     #[test]

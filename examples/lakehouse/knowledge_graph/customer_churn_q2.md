@@ -7,4 +7,4 @@ links: ["retention_strategy_01"]
 ---
 # Customer Churn Q2 Analysis
 
-This node points at external lakehouse data. Content resolution is implemented in Phase 4.
+This node points at external lakehouse data. Use `LakehouseReader` to resolve the `source` URI at read time.

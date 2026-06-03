@@ -17,6 +17,7 @@ This folder holds implementation planning and progress tracking for [MagGraph](h
 | [`PROGRESS.md`](./PROGRESS.md) | Living checklist — update status as work lands |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Condensed architecture reference derived from the PRD |
 | [`WIKILINKS.md`](./WIKILINKS.md) | Wikilink syntax, edge resolution, and traversal |
+| [`LAKEHOUSE.md`](./LAKEHOUSE.md) | Lakehouse mode, URI resolution, and content resolvers |
 
 ## How to use this folder
 

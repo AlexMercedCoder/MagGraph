@@ -31,6 +31,36 @@ pub struct RemoteSource {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LakehouseConfig {
     pub remote_sources: Vec<RemoteSource>,
+    #[serde(default)]
+    pub cache: LakehouseCacheConfig,
+}
+
+/// Cache policy for resolved external content (Phase 4).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LakehouseCacheConfig {
+    /// Time-to-live for cached fetches, in seconds. `0` disables TTL expiry.
+    #[serde(default = "default_cache_ttl_secs")]
+    pub ttl_secs: u64,
+    /// Maximum total bytes stored in the cache. `0` means no size cap.
+    #[serde(default = "default_cache_max_bytes")]
+    pub max_bytes: usize,
+}
+
+impl Default for LakehouseCacheConfig {
+    fn default() -> Self {
+        Self {
+            ttl_secs: default_cache_ttl_secs(),
+            max_bytes: default_cache_max_bytes(),
+        }
+    }
+}
+
+fn default_cache_ttl_secs() -> u64 {
+    300
+}
+
+fn default_cache_max_bytes() -> usize {
+    10 * 1024 * 1024
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
