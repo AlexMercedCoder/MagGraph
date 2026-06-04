@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-04 (Phase 5)  
+**Last updated:** 2026-06-04 (Phase 6)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -17,7 +17,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 3 | Edges & traversal | ✅ Complete | Wikilinks, adjacency, BFS/DFS, Markdown reports |
 | 4 | Lakehouse mode | ✅ Complete | ContentResolver, URI rules, cache, Parquet metadata MVP |
 | 5 | Git sync & roles | ✅ Complete | SyncEngine, lock.toml, WritePolicy, CLI sync subcommand |
-| 6 | CLI | ⬜ Not started | |
+| 6 | CLI | ✅ Complete | query, scaffold, global flags, shell completion |
 | 7 | Python bindings | ⬜ Not started | |
 | 8 | SKILL.md & MCP | ⬜ Not started | |
 | 9 | Embedded UI | ⬜ Not started | |
@@ -103,11 +103,11 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 6.1 | `maggraph query` | ⬜ |
-| 6.2 | `maggraph sync` | 🟡 | Subcommands landed with Phase 5 |
-| 6.3 | `maggraph scaffold --mcp` | ⬜ |
-| 6.4 | Global CLI flags | ⬜ |
-| 6.5 | Shell completion (optional) | ⬜ |
+| 6.1 | `maggraph query` | ✅ |
+| 6.2 | `maggraph sync` | ✅ |
+| 6.3 | `maggraph scaffold --mcp` | ✅ |
+| 6.4 | Global CLI flags | ✅ |
+| 6.5 | Shell completion (optional) | ✅ |
 
 ---
 
@@ -179,3 +179,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-03 | Phase 3: wikilink parser, `GraphAdjacency`, BFS/DFS `traverse`, `TraversalResult::to_markdown`, `planning/WIKILINKS.md` |
 | 2026-06-03 | Phase 4: `LakehouseReader`, `ContentResolver` (file/s3/http), URI resolution, cache, `planning/LAKEHOUSE.md` |
 | 2026-06-04 | Phase 5: `SyncEngine`, `WritePolicy`, `lock.toml`, Git pull/push/status, role enforcement, `planning/SYNC.md`, `examples/sync/` |
+| 2026-06-04 | Phase 6: `maggraph query`, `scaffold --mcp` / `--skill`, `-v` tracing, `complete` subcommand, integration tests, `planning/CLI.md` |

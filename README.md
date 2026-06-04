@@ -8,6 +8,7 @@ Rust-based in-process graph database for AI semantic layers. Markdown is the sou
 cargo build
 cargo test
 cargo run -p maggraph-cli -- --config examples/basic/maggraph.toml
+cargo run -p maggraph-cli -- query --from welcome --depth 2 --config examples/basic/maggraph.toml
 ```
 
 See [`examples/README.md`](./examples/README.md) for sample `maggraph.toml` files and a small knowledge graph.
