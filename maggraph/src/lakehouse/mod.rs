@@ -27,9 +27,7 @@ pub struct LakehouseReader {
 impl LakehouseReader {
     pub fn from_config(config: &ResolvedConfig) -> Self {
         let lakehouse = config.config.lakehouse.as_ref();
-        let cache_cfg = lakehouse
-            .map(|lh| lh.cache.clone())
-            .unwrap_or_default();
+        let cache_cfg = lakehouse.map(|lh| lh.cache.clone()).unwrap_or_default();
 
         let remote_uris: Vec<String> = lakehouse
             .map(|lh| lh.remote_sources.iter().map(|s| s.uri.clone()).collect())
@@ -215,9 +213,7 @@ remote_sources = [{ uri = "s3://corp-data/lake", format = "parquet" }]
         let index = GraphIndex::open(&resolved.root_path).expect("index");
         let mut reader = LakehouseReader::from_config(&resolved);
 
-        let result = reader
-            .read_node(&index, "customer_churn_q2")
-            .expect("read");
+        let result = reader.read_node(&index, "customer_churn_q2").expect("read");
         assert!(matches!(
             result.content,
             ResolvedContent::ExternalAsset { .. }
@@ -227,7 +223,9 @@ remote_sources = [{ uri = "s3://corp-data/lake", format = "parquet" }]
         assert!(md.contains("parquet"));
 
         // cache hit
-        let cached = reader.read_node(&index, "customer_churn_q2").expect("cached");
+        let cached = reader
+            .read_node(&index, "customer_churn_q2")
+            .expect("cached");
         assert_eq!(cached.content, result.content);
         assert_eq!(reader.cache().len(), 1);
     }
@@ -268,7 +266,11 @@ remote_sources = [{ uri = "file://PLACEHOLDER", format = "parquet" }]
 "#
             .replace(
                 "PLACEHOLDER",
-                &data_dir.canonicalize().expect("canon").display().to_string(),
+                &data_dir
+                    .canonicalize()
+                    .expect("canon")
+                    .display()
+                    .to_string(),
             ),
         )
         .expect("write config");
@@ -337,9 +339,6 @@ source_uri: "s3://lake/data.parquet"
 "#;
         let (metadata, _) =
             crate::node::parse_markdown_node(raw, PathBuf::from("x.md").as_path()).expect("parse");
-        assert_eq!(
-            metadata.source.as_deref(),
-            Some("s3://lake/data.parquet")
-        );
+        assert_eq!(metadata.source.as_deref(), Some("s3://lake/data.parquet"));
     }
 }

@@ -1,0 +1,7 @@
+[storage]
+mode = "local"
+root_path = "./graph"
+
+[sync]
+role = "follower"
+remote_url = "/tmp/maggraph-sync.git"

@@ -73,6 +73,24 @@ pub enum MagGraphError {
 
     #[error("node {id} has no external source to resolve")]
     MissingSource { id: String },
+
+    #[error("[sync] is not configured")]
+    SyncNotConfigured,
+
+    #[error("git error: {message}")]
+    Git { message: String },
+
+    #[error("write lock required for leader mutations; acquire lock before writing")]
+    WriteLockRequired,
+
+    #[error("write lock held by {holder} since {acquired_at}")]
+    WriteLockHeld { holder: String, acquired_at: String },
+
+    #[error("write lock error at {path}: {message}")]
+    WriteLock { path: PathBuf, message: String },
+
+    #[error("read-only role `{role}` cannot perform write operations")]
+    ReadOnlyRole { role: String },
 }
 
 pub type Result<T> = std::result::Result<T, MagGraphError>;

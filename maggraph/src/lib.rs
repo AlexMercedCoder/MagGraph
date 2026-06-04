@@ -4,6 +4,7 @@ pub mod graph;
 pub mod index;
 pub mod lakehouse;
 pub mod node;
+pub mod sync;
 pub mod wikilink;
 
 pub use config::{
@@ -20,4 +21,8 @@ pub use lakehouse::{
     ResolvedContent, ResolverRegistry, S3StubResolver,
 };
 pub use node::{NewNode, Node, NodeMetadata};
+pub use sync::{
+    GitRepository, PullResult, PushResult, SyncEngine, SyncStatus, WriteLockGuard, WritePolicy,
+    DEFAULT_BRANCH, DEFAULT_REMOTE, LOCK_FILE_NAME,
+};
 pub use wikilink::{extract_wikilink_targets, extract_wikilinks, normalize_wikilink_target};
