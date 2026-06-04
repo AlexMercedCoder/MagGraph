@@ -93,14 +93,13 @@ Wheels are built as CI artifacts; PyPI publish is deferred to Phase 10.
 
 ## MCP integration
 
-After `maggraph scaffold --mcp`, replace stub tool bodies in `mcp_server/server.py` with calls to this package:
+`maggraph scaffold --mcp` generates `mcp_server/server.py` already wired to this package. See [`planning/MCP.md`](./MCP.md).
+
+## CRUD (Phase 8)
 
 ```python
-import maggraph
-
-index = maggraph.open_index(GRAPH_ROOT)
-
-@mcp.tool
-def get_node(node_id: str) -> str:
-    return index.read_node(node_id).to_markdown()
+index = maggraph.open_index("/path/to/graph")
+index.create_node("new_id", node_type="note", body="# Hi\n", links=["welcome"])
+index.update_node("new_id", "# Updated\n")
+index.delete_node("new_id")
 ```

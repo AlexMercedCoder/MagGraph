@@ -83,3 +83,20 @@ def test_config_open_index_helper() -> None:
     config = maggraph.load_config(str(BASIC_CONFIG))
     index = config.open_index()
     assert len(index) >= 2
+
+
+def test_crud_round_trip(tmp_path: Path) -> None:
+    import shutil
+
+    graph = tmp_path / "graph"
+    shutil.copytree(BASIC_GRAPH, graph)
+    index = maggraph.open_index(str(graph))
+
+    index.create_node("agent_test", node_type="note", body="# Test\n", links=[])
+    assert "agent_test" in index.list_nodes()
+
+    index.update_node("agent_test", "# Updated\n")
+    assert "Updated" in index.read_node("agent_test").body
+
+    index.delete_node("agent_test")
+    assert "agent_test" not in index.list_nodes()
