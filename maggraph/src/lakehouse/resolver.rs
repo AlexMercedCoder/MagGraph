@@ -84,10 +84,11 @@ impl FileResolver {
             PathBuf::from(uri)
         };
 
-        let canonical = fs::canonicalize(&path).map_err(|source| MagGraphError::ContentResolve {
-            uri: uri.to_string(),
-            message: format!("failed to read file {}: {source}", path.display()),
-        })?;
+        let canonical =
+            fs::canonicalize(&path).map_err(|source| MagGraphError::ContentResolve {
+                uri: uri.to_string(),
+                message: format!("failed to read file {}: {source}", path.display()),
+            })?;
 
         if !self.allowed_roots.is_empty()
             && !self
@@ -224,10 +225,12 @@ fn parse_s3_uri(uri: &str) -> Result<(String, String)> {
             message: "invalid s3 URI".into(),
         })?;
 
-    let (bucket, key) = rest.split_once('/').ok_or_else(|| MagGraphError::ContentResolve {
-        uri: uri.to_string(),
-        message: "s3 URI must be s3://bucket/key".into(),
-    })?;
+    let (bucket, key) = rest
+        .split_once('/')
+        .ok_or_else(|| MagGraphError::ContentResolve {
+            uri: uri.to_string(),
+            message: "s3 URI must be s3://bucket/key".into(),
+        })?;
 
     if bucket.is_empty() || key.is_empty() {
         return Err(MagGraphError::ContentResolve {
@@ -265,10 +268,12 @@ fn read_snippet(path: &Path, max_bytes: usize) -> Result<String> {
         message: format!("open: {source}"),
     })?;
     let mut buf = vec![0u8; max_bytes];
-    let read = file.read(&mut buf).map_err(|source| MagGraphError::ContentResolve {
-        uri: path.display().to_string(),
-        message: format!("read: {source}"),
-    })?;
+    let read = file
+        .read(&mut buf)
+        .map_err(|source| MagGraphError::ContentResolve {
+            uri: path.display().to_string(),
+            message: format!("read: {source}"),
+        })?;
     buf.truncate(read);
     Ok(String::from_utf8_lossy(&buf).into_owned())
 }
@@ -297,7 +302,10 @@ mod tests {
             .expect("fetch");
 
         assert!(matches!(content, ResolvedContent::ExternalAsset { .. }));
-        if let ResolvedContent::ExternalAsset { snippet, metadata, .. } = content {
+        if let ResolvedContent::ExternalAsset {
+            snippet, metadata, ..
+        } = content
+        {
             assert!(snippet.is_some());
             assert!(metadata.parquet.is_some());
         }

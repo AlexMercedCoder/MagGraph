@@ -7,6 +7,7 @@ use walkdir::WalkDir;
 use crate::error::{MagGraphError, Result};
 use crate::graph::GraphAdjacency;
 use crate::node::{NewNode, Node, NodeMetadata};
+use crate::sync::WritePolicy;
 
 /// Lightweight index entry for a graph node (metadata + path, no body).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,6 +133,20 @@ impl GraphIndex {
 
     /// Create a new node on disk and update the index.
     pub fn create_node(&mut self, new_node: NewNode) -> Result<Node> {
+        self.create_node_with_policy(new_node, &WritePolicy::unrestricted())
+    }
+
+    /// Create a node after validating the write policy (sync role + leader lock).
+    pub fn create_node_with_policy(
+        &mut self,
+        new_node: NewNode,
+        policy: &WritePolicy<'_>,
+    ) -> Result<Node> {
+        policy.assert_can_write()?;
+        self.create_node_unchecked(new_node)
+    }
+
+    fn create_node_unchecked(&mut self, new_node: NewNode) -> Result<Node> {
         let node = new_node.into_node();
         if self.by_id.contains_key(node.id()) {
             return Err(MagGraphError::NodeAlreadyExists {
@@ -162,6 +177,16 @@ impl GraphIndex {
 
     /// Update an existing node on disk and refresh the index.
     pub fn update_node(&mut self, node: Node) -> Result<()> {
+        self.update_node_with_policy(node, &WritePolicy::unrestricted())
+    }
+
+    /// Update a node after validating the write policy.
+    pub fn update_node_with_policy(&mut self, node: Node, policy: &WritePolicy<'_>) -> Result<()> {
+        policy.assert_can_write()?;
+        self.update_node_unchecked(node)
+    }
+
+    fn update_node_unchecked(&mut self, node: Node) -> Result<()> {
         let existing = self
             .by_id
             .get(node.id())
@@ -191,6 +216,16 @@ impl GraphIndex {
 
     /// Delete a node from disk and remove it from the index.
     pub fn delete_node(&mut self, id: &str) -> Result<()> {
+        self.delete_node_with_policy(id, &WritePolicy::unrestricted())
+    }
+
+    /// Delete a node after validating the write policy.
+    pub fn delete_node_with_policy(&mut self, id: &str, policy: &WritePolicy<'_>) -> Result<()> {
+        policy.assert_can_write()?;
+        self.delete_node_unchecked(id)
+    }
+
+    fn delete_node_unchecked(&mut self, id: &str) -> Result<()> {
         let entry = self
             .by_id
             .remove(id)

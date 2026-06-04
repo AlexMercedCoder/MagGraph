@@ -18,11 +18,7 @@ pub struct NodeMetadata {
     #[serde(rename = "type")]
     pub node_type: String,
     /// External asset URI (`source` or `source_uri` in frontmatter).
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        alias = "source_uri"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "source_uri")]
     pub source: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<String>,

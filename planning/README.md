@@ -18,6 +18,7 @@ This folder holds implementation planning and progress tracking for [MagGraph](h
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Condensed architecture reference derived from the PRD |
 | [`WIKILINKS.md`](./WIKILINKS.md) | Wikilink syntax, edge resolution, and traversal |
 | [`LAKEHOUSE.md`](./LAKEHOUSE.md) | Lakehouse mode, URI resolution, and content resolvers |
+| [`SYNC.md`](./SYNC.md) | Git sync, leader/follower roles, and write lock protocol |
 
 ## How to use this folder
 

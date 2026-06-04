@@ -12,9 +12,7 @@ pub const ALLOWED_SCHEMES: &[&str] = &["file", "s3", "http", "https"];
 pub fn resolve_source_uri(source: &str, remote_sources: &[RemoteSource]) -> Result<String> {
     let source = source.trim();
     if source.is_empty() {
-        return Err(MagGraphError::Lakehouse(
-            "source must not be empty".into(),
-        ));
+        return Err(MagGraphError::Lakehouse("source must not be empty".into()));
     }
 
     if let Some(scheme) = uri_scheme(source) {
@@ -34,7 +32,9 @@ pub fn resolve_source_uri(source: &str, remote_sources: &[RemoteSource]) -> Resu
 
 pub fn uri_scheme(uri: &str) -> Option<&str> {
     let (scheme, rest) = uri.split_once(':')?;
-    if rest.starts_with("//") && !scheme.is_empty() && scheme.chars().all(|c| c.is_ascii_alphanumeric())
+    if rest.starts_with("//")
+        && !scheme.is_empty()
+        && scheme.chars().all(|c| c.is_ascii_alphanumeric())
     {
         Some(scheme)
     } else {
@@ -108,11 +108,8 @@ mod tests {
 
     #[test]
     fn absolute_s3_uri_passes_through() {
-        let resolved = resolve_source_uri(
-            "s3://lake/churn_data.parquet",
-            &[parquet_remote()],
-        )
-        .expect("resolve");
+        let resolved = resolve_source_uri("s3://lake/churn_data.parquet", &[parquet_remote()])
+            .expect("resolve");
         assert_eq!(resolved, "s3://lake/churn_data.parquet");
     }
 
@@ -125,8 +122,8 @@ mod tests {
 
     #[test]
     fn rejects_disallowed_scheme() {
-        let err = resolve_source_uri("ftp://example/data", &[parquet_remote()])
-            .expect_err("scheme");
+        let err =
+            resolve_source_uri("ftp://example/data", &[parquet_remote()]).expect_err("scheme");
         assert!(matches!(err, MagGraphError::DisallowedScheme { .. }));
     }
 

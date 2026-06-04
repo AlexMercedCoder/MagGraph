@@ -4,14 +4,9 @@ use crate::node::Node;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolvedContent {
     /// Markdown body stored in-repo (local mode or lakehouse node without fetch).
-    LocalMarkdown {
-        body: String,
-    },
+    LocalMarkdown { body: String },
     /// Plain text fetched from an external URI.
-    Text {
-        uri: String,
-        body: String,
-    },
+    Text { uri: String, body: String },
     /// External asset metadata (and optional snippet); full analytics deferred.
     ExternalAsset {
         uri: String,
@@ -48,7 +43,9 @@ impl ResolvedContent {
         match self {
             Self::LocalMarkdown { body } => body.len(),
             Self::Text { body, .. } => body.len(),
-            Self::ExternalAsset { snippet, metadata, .. } => {
+            Self::ExternalAsset {
+                snippet, metadata, ..
+            } => {
                 snippet.as_ref().map(String::len).unwrap_or(0)
                     + metadata
                         .size_bytes
@@ -62,7 +59,9 @@ impl ResolvedContent {
     pub fn to_markdown(&self) -> String {
         match self {
             Self::LocalMarkdown { body } => body.clone(),
-            Self::Text { uri, body } => format!("## Resolved content\n\n**URI:** `{uri}`\n\n{body}"),
+            Self::Text { uri, body } => {
+                format!("## Resolved content\n\n**URI:** `{uri}`\n\n{body}")
+            }
             Self::ExternalAsset {
                 uri,
                 format,
@@ -78,10 +77,7 @@ impl ResolvedContent {
                     sections.push(format!("**Size:** {size} bytes"));
                 }
                 if let Some(parquet) = &metadata.parquet {
-                    sections.push(format!(
-                        "**Parquet magic valid:** {}",
-                        parquet.magic_valid
-                    ));
+                    sections.push(format!("**Parquet magic valid:** {}", parquet.magic_valid));
                 }
                 if let Some(snippet) = snippet {
                     sections.push(format!("### Snippet\n\n{snippet}"));
