@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-04 (Phase 7)  
+**Last updated:** 2026-06-04 (Phase 8)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -19,7 +19,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 5 | Git sync & roles | ✅ Complete | SyncEngine, lock.toml, WritePolicy, CLI sync subcommand |
 | 6 | CLI | ✅ Complete | query, scaffold, global flags, shell completion |
 | 7 | Python bindings | ✅ Complete | PyO3 module, asyncio, type stubs, wheel CI, example script |
-| 8 | SKILL.md & MCP | ⬜ Not started | |
+| 8 | SKILL.md & MCP | ✅ Complete | Schema introspection, wired MCP, docs |
 | 9 | Embedded UI | ⬜ Not started | |
 | 10 | Hardening & release | ⬜ Not started | |
 
@@ -127,10 +127,10 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 8.1 | Schema introspection | ⬜ |
-| 8.2 | `SKILL.md` generation | ⬜ |
-| 8.3 | FastMCP scaffold | ⬜ |
-| 8.4 | MCP deployment docs | ⬜ |
+| 8.1 | Schema introspection | ✅ | `maggraph::agent::GraphSchema` |
+| 8.2 | `SKILL.md` generation | ✅ | `scaffold --skill`, `init --skill` |
+| 8.3 | FastMCP scaffold | ✅ | PyO3-wired tools incl. CRUD |
+| 8.4 | MCP deployment docs | ✅ | `planning/MCP.md` |
 
 ---
 
@@ -181,3 +181,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-04 | Phase 5: `SyncEngine`, `WritePolicy`, `lock.toml`, Git pull/push/status, role enforcement, `planning/SYNC.md`, `examples/sync/` |
 | 2026-06-04 | Phase 7: PyO3 Python bindings, maturin package, asyncio API, type stubs, wheel CI, `planning/PYTHON.md`, `examples/python_agent.py` |
 | 2026-06-04 | Phase 6: `maggraph query`, `scaffold --mcp` / `--skill`, `-v` tracing, `complete` subcommand, integration tests, `planning/CLI.md` |
+| 2026-06-04 | Phase 8: `maggraph::agent` schema introspection, PyO3-wired MCP scaffold, `init --skill`, Python CRUD, `planning/MCP.md`, MCP smoke test |

@@ -11,7 +11,7 @@ use crate::config::StorageMode;
 use crate::error::MagGraphError as CoreError;
 use crate::graph::{traverse, TraversalOrder, TraversalResult as CoreTraversalResult};
 use crate::index::GraphIndex;
-use crate::node::{Node as CoreNode, NodeMetadata};
+use crate::node::{NewNode, Node as CoreNode, NodeMetadata};
 use crate::MagGraphConfig;
 
 pyo3::create_exception!(_maggraph, PyMagGraphError, pyo3::exceptions::PyException);
@@ -193,6 +193,43 @@ impl PyGraphIndex {
         Ok(PyNode {
             inner: self.inner.read_node(node_id).map_err(map_err)?,
         })
+    }
+
+    #[pyo3(signature = (node_id, node_type="note", body="", links=None))]
+    fn create_node(
+        &mut self,
+        node_id: &str,
+        node_type: &str,
+        body: &str,
+        links: Option<Vec<String>>,
+    ) -> PyResult<PyNode> {
+        let relative_path = format!("{node_id}.md").into();
+        let new_node = NewNode {
+            metadata: NodeMetadata {
+                id: node_id.to_string(),
+                node_type: node_type.to_string(),
+                source: None,
+                links: links.unwrap_or_default(),
+                extra: Default::default(),
+            },
+            body: body.to_string(),
+            relative_path,
+        };
+        Ok(PyNode {
+            inner: self.inner.create_node(new_node).map_err(map_err)?,
+        })
+    }
+
+    fn update_node(&mut self, node_id: &str, body: &str) -> PyResult<()> {
+        let mut node = self.inner.read_node(node_id).map_err(map_err)?;
+        node.body = body.to_string();
+        self.inner.update_node(node).map_err(map_err)?;
+        Ok(())
+    }
+
+    fn delete_node(&mut self, node_id: &str) -> PyResult<()> {
+        self.inner.delete_node(node_id).map_err(map_err)?;
+        Ok(())
     }
 
     fn read_node_async<'py>(

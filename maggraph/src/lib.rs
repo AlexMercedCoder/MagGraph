@@ -1,3 +1,4 @@
+pub mod agent;
 pub mod config;
 pub mod error;
 pub mod graph;
@@ -9,6 +10,10 @@ pub mod python;
 pub mod sync;
 pub mod wikilink;
 
+pub use agent::{
+    render_skill_md, write_mcp_scaffold, write_skill_md, EdgePattern, EdgeSource, GraphSchema,
+    McpScaffoldContext, SchemaEdge, SkillRenderContext,
+};
 pub use config::{
     LakehouseCacheConfig, LakehouseConfig, MagGraphConfig, RemoteSource, ResolvedConfig,
     StorageConfig, StorageMode, SyncConfig, SyncRole, METADATA_DIR_NAME,

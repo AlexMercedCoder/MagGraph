@@ -47,7 +47,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install maturin and pytest
-        run: pip install maturin pytest pytest-asyncio
+        run: pip install maturin pytest pytest-asyncio fastmcp
 
       - name: Build wheel
         working-directory: python
@@ -55,6 +55,9 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install maturin pytest pytest-asyncio
           .venv/bin/maturin build --release --features python-ext
+
+      - name: Build maggraph CLI (for scaffold smoke test)
+        run: cargo build -p maggraph-cli
 
       - name: Install extension and run pytest
         working-directory: python

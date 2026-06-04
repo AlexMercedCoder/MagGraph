@@ -703,6 +703,7 @@ dependencies = [
  "clap_complete",
  "maggraph",
  "predicates",
+ "tempfile",
  "thiserror",
  "tracing",
  "tracing-subscriber",
