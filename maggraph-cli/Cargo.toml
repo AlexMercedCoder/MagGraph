@@ -11,7 +11,8 @@ name = "maggraph"
 path = "src/main.rs"
 
 [dependencies]
-maggraph = { path = "../maggraph" }
+maggraph = { path = "../maggraph", features = ["ui"] }
+tokio = { workspace = true }
 clap.workspace = true
 clap_complete = "4.5"
 thiserror.workspace = true
@@ -21,4 +22,6 @@ tracing-subscriber.workspace = true
 [dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.1"
+serde_json = { workspace = true }
 tempfile = "3.14"
+ureq = { version = "2.12", default-features = false, features = ["json"] }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MagGraph</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>MagGraph</h1>
+    <p class="subtitle">Local graph dashboard</p>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Nodes</h2>
+        <button type="button" id="refresh-nodes" class="btn btn-small">Refresh</button>
+      </div>
+      <ul id="node-list" class="node-list"></ul>
+      <section class="edges-panel">
+        <h2>Edges</h2>
+        <ul id="edge-list" class="edge-list"></ul>
+      </section>
+    </aside>
+    <section class="detail">
+      <div id="empty-state" class="empty-state">
+        <p>Select a node to view or edit its markdown body.</p>
+      </div>
+      <article id="node-detail" class="node-detail hidden">
+        <header class="detail-header">
+          <h2 id="detail-id"></h2>
+          <span id="detail-type" class="badge"></span>
+        </header>
+        <dl class="meta">
+          <dt>Path</dt><dd id="detail-path"></dd>
+          <dt>Source</dt><dd id="detail-source"></dd>
+          <dt>Links</dt><dd id="detail-links"></dd>
+        </dl>
+        <label for="detail-body">Body (markdown)</label>
+        <textarea id="detail-body" rows="16"></textarea>
+        <div class="actions">
+          <button type="button" id="save-node" class="btn btn-primary">Save</button>
+          <button type="button" id="delete-node" class="btn btn-danger">Delete</button>
+        </div>
+        <p id="status" class="status" role="status"></p>
+      </article>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

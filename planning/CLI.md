@@ -51,6 +51,14 @@ See [SYNC.md](./SYNC.md).
 
 Initialize graph root; `--git` when `[sync]` is configured; `--skill` writes `SKILL.md` after init.
 
+### `maggraph ui`
+
+Start the embedded local web dashboard. See [UI.md](./UI.md).
+
+```bash
+maggraph ui --config examples/basic/maggraph.toml
+```
+
 ### `maggraph complete`
 
 Emit shell completions: `maggraph complete bash > /tmp/maggraph.bash`.

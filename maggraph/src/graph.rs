@@ -56,6 +56,22 @@ impl GraphAdjacency {
     pub fn has_node(&self, id: &str) -> bool {
         self.outgoing.contains_key(id) || self.unresolved.contains_key(id)
     }
+
+    /// All resolved outgoing edges as `(from_id, to_id)` pairs.
+    pub fn outgoing_edges(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.outgoing
+            .iter()
+            .flat_map(|(from, targets)| targets.iter().map(move |to| (from.as_str(), to.as_str())))
+    }
+
+    /// All unresolved wikilink targets as `(from_id, target)` pairs.
+    pub fn unresolved_edges(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.unresolved.iter().flat_map(|(from, targets)| {
+            targets
+                .iter()
+                .map(move |target| (from.as_str(), target.as_str()))
+        })
+    }
 }
 
 fn build_path_stem_index(index: &GraphIndex) -> HashMap<String, String> {
