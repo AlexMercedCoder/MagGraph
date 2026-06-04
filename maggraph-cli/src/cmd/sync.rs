@@ -23,6 +23,7 @@ pub enum SyncAction {
     Init,
 }
 
+#[tracing::instrument(skip_all, fields(action = ?args.action))]
 pub fn run(resolved: &ResolvedConfig, args: &SyncArgs) -> Result<()> {
     match &args.action {
         SyncAction::Init => {

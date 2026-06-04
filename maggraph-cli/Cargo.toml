@@ -14,14 +14,14 @@ path = "src/main.rs"
 maggraph = { path = "../maggraph", features = ["ui"] }
 tokio = { workspace = true }
 clap.workspace = true
-clap_complete = "4.5"
+clap_complete = { workspace = true }
 thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
-assert_cmd = "2.0"
-predicates = "3.1"
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
 serde_json = { workspace = true }
-tempfile = "3.14"
-ureq = { version = "2.12", default-features = false, features = ["json"] }
+tempfile = { workspace = true }
+ureq = { workspace = true }

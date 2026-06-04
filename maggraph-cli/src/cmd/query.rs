@@ -28,6 +28,7 @@ fn parse_order(s: &str) -> std::result::Result<TraversalOrder, String> {
     }
 }
 
+#[tracing::instrument(skip_all, fields(from = %args.from, depth = args.depth, order = ?args.order))]
 pub fn run(resolved: &ResolvedConfig, args: &QueryArgs) -> Result<()> {
     if args.format != "markdown" {
         return Err(maggraph::MagGraphError::ConfigValidation(format!(

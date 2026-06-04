@@ -18,6 +18,7 @@ pub struct UiArgs {
     pub dry_run: bool,
 }
 
+#[tracing::instrument(skip_all, fields(host = %args.host, port = args.port))]
 pub fn run(resolved: &ResolvedConfig, args: &UiArgs) -> Result<()> {
     let options = UiServerOptions::new(&args.host, args.port, resolved.clone())?;
 

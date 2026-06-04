@@ -7,6 +7,7 @@ pub mod lakehouse;
 pub mod node;
 #[cfg(feature = "python")]
 pub mod python;
+pub mod security;
 pub mod sync;
 #[cfg(feature = "ui")]
 pub mod ui;
@@ -30,6 +31,7 @@ pub use lakehouse::{
     ResolvedContent, ResolverRegistry, S3StubResolver,
 };
 pub use node::{NewNode, Node, NodeMetadata};
+pub use security::{assert_path_within_root, validate_http_uri_host, validate_relative_node_path};
 pub use sync::{
     GitRepository, PullResult, PushResult, SyncEngine, SyncStatus, WriteLockGuard, WritePolicy,
     DEFAULT_BRANCH, DEFAULT_REMOTE, LOCK_FILE_NAME,

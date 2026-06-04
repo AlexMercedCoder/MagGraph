@@ -10,6 +10,7 @@ use serde_yaml::Value;
 pub use frontmatter::{parse_markdown_node, serialize_markdown_node};
 
 use crate::error::{MagGraphError, Result};
+use crate::security::validate_relative_node_path;
 
 /// Metadata stored in a node's YAML frontmatter.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,6 +83,7 @@ impl Node {
 
     /// Write this node to disk under `root_path`.
     pub fn write_to(&self, root_path: impl AsRef<Path>) -> Result<()> {
+        validate_relative_node_path(&self.relative_path)?;
         let path = root_path.as_ref().join(&self.relative_path);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|source| MagGraphError::NodeWrite {

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::error::{MagGraphError, Result};
 use crate::lakehouse::content::{AssetMetadata, ParquetMetadata, ResolvedContent};
 use crate::lakehouse::uri::{infer_format, uri_scheme, validate_scheme};
+use crate::security::validate_http_uri_host;
 
 /// Fetches content for a resolved external URI.
 pub trait ContentResolver: Send + Sync {
@@ -90,11 +91,17 @@ impl FileResolver {
                 message: format!("failed to read file {}: {source}", path.display()),
             })?;
 
-        if !self.allowed_roots.is_empty()
-            && !self
-                .allowed_roots
-                .iter()
-                .any(|root| canonical.starts_with(root))
+        if self.allowed_roots.is_empty() {
+            return Err(MagGraphError::ContentResolve {
+                uri: uri.to_string(),
+                message: "file:// reads require a configured file allowlist".into(),
+            });
+        }
+
+        if !self
+            .allowed_roots
+            .iter()
+            .any(|root| canonical.starts_with(root))
         {
             return Err(MagGraphError::ContentResolve {
                 uri: uri.to_string(),
@@ -158,6 +165,7 @@ impl ContentResolver for HttpResolver {
 
     fn fetch(&self, uri: &str, format_hint: &str) -> Result<ResolvedContent> {
         validate_scheme(uri_scheme(uri).unwrap_or("http"))?;
+        validate_http_uri_host(uri)?;
         Ok(ResolvedContent::ExternalAsset {
             uri: uri.to_string(),
             format: format_hint.to_string(),
@@ -309,6 +317,18 @@ mod tests {
             assert!(snippet.is_some());
             assert!(metadata.parquet.is_some());
         }
+    }
+
+    #[test]
+    fn file_resolver_requires_allowlist() {
+        let temp = TempDir::new().expect("temp");
+        let path = temp.path().join("note.txt");
+        fs::write(&path, "hello").expect("write");
+
+        let uri = format!("file://{}", path.display());
+        let resolver = FileResolver::new(Vec::new());
+        let err = resolver.fetch(&uri, "unknown").expect_err("deny");
+        assert!(matches!(err, MagGraphError::ContentResolve { .. }));
     }
 
     #[test]

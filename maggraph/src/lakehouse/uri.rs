@@ -1,5 +1,6 @@
 use crate::config::RemoteSource;
 use crate::error::{MagGraphError, Result};
+use crate::security::validate_http_uri_host;
 
 /// Allowed URI schemes for lakehouse content resolution.
 pub const ALLOWED_SCHEMES: &[&str] = &["file", "s3", "http", "https"];
@@ -17,6 +18,9 @@ pub fn resolve_source_uri(source: &str, remote_sources: &[RemoteSource]) -> Resu
 
     if let Some(scheme) = uri_scheme(source) {
         validate_scheme(scheme)?;
+        if scheme == "http" || scheme == "https" {
+            validate_http_uri_host(source)?;
+        }
         return Ok(source.to_string());
     }
 
@@ -118,6 +122,12 @@ mod tests {
         let resolved =
             resolve_source_uri("churn_data.parquet", &[parquet_remote()]).expect("resolve");
         assert_eq!(resolved, "s3://corp-data/lake/churn_data.parquet");
+    }
+
+    #[test]
+    fn rejects_localhost_in_absolute_http_source() {
+        let err = resolve_source_uri("http://127.0.0.1/secret", &[]).expect_err("blocked");
+        assert!(matches!(err, MagGraphError::Lakehouse(_)));
     }
 
     #[test]

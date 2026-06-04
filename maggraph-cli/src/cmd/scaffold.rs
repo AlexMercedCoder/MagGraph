@@ -21,6 +21,7 @@ pub struct ScaffoldArgs {
     pub skill: bool,
 }
 
+#[tracing::instrument(skip_all, fields(mcp = args.mcp, skill = args.skill))]
 pub fn run(resolved: &ResolvedConfig, args: &ScaffoldArgs) -> Result<()> {
     if !args.mcp && !args.skill {
         return Err(maggraph::MagGraphError::ConfigValidation(
