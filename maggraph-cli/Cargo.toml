@@ -13,6 +13,11 @@ path = "src/main.rs"
 [dependencies]
 maggraph = { path = "../maggraph" }
 clap.workspace = true
+clap_complete = "4.5"
 thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
