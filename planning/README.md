@@ -13,8 +13,11 @@ This folder holds implementation planning and progress tracking for [MagGraph](h
 
 | File | Purpose |
 |------|---------|
-| [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) | Phased roadmap, dependencies, deliverables, and acceptance criteria |
+| [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) | Phased roadmap (0–10), dependencies, deliverables, acceptance criteria |
 | [`PROGRESS.md`](./PROGRESS.md) | Living checklist — update status as work lands |
+| [`BACKLOG.md`](./BACKLOG.md) | **Post-v0.1 todos** — testing gaps, docs, CI, PRD follow-ups |
+| [`TESTING.md`](./TESTING.md) | How to run tests, coverage map, gap summary |
+| [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md) | PRD vs v0.1 shipped behavior (stubs and deferred features) |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Condensed architecture reference derived from the PRD |
 | [`WIKILINKS.md`](./WIKILINKS.md) | Wikilink syntax, edge resolution, and traversal |
 | [`LAKEHOUSE.md`](./LAKEHOUSE.md) | Lakehouse mode, URI resolution, and content resolvers |
@@ -23,17 +26,19 @@ This folder holds implementation planning and progress tracking for [MagGraph](h
 | [`PYTHON.md`](./PYTHON.md) | PyO3 bindings, asyncio, maturin, and type stubs |
 | [`MCP.md`](./MCP.md) | FastMCP server scaffold, deployment, and agent tools |
 | [`UI.md`](./UI.md) | Embedded local web dashboard (`maggraph ui`) |
+| [`SECURITY.md`](./SECURITY.md) | Threat model, mitigations, and test references |
+| [`BENCHMARKS.md`](./BENCHMARKS.md) | Traversal latency benchmarks and CI |
 
 ## How to use this folder
 
 1. Read **ARCHITECTURE.md** for a quick mental model before coding.
-2. Follow phases in **IMPLEMENTATION_PLAN.md** in order unless a dependency note says otherwise.
-3. After each milestone (PR merge, feature slice, or phase completion), update **PROGRESS.md**:
-   - Change task status: `⬜ Not started` → `🟡 In progress` → `✅ Done`
-   - Add a one-line note under **Changelog** with date and what changed.
-4. Link PRs or issues in PROGRESS notes when helpful (e.g. `Done in #12`).
+2. Phases **0–10** are complete for v0.1 — see **PROGRESS.md** for history.
+3. For **v0.1.1+** work, pick items from **BACKLOG.md** (IDs like `T-H1`, `D-4`).
+4. Before adding tests, read **TESTING.md** for layout and conventions.
+5. When explaining PRD vs reality to users, use **IMPLEMENTATION_STATUS.md**.
+6. After each milestone, update **PROGRESS.md** changelog and mark backlog items ✅ in **BACKLOG.md**.
 
-## Status legend (PROGRESS.md)
+## Status legend (PROGRESS.md / BACKLOG.md)
 
 | Symbol | Meaning |
 |--------|---------|

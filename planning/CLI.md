@@ -69,3 +69,14 @@ Emit shell completions: `maggraph complete bash > /tmp/maggraph.bash`.
 maggraph complete bash >> ~/.bash_completion.d/maggraph
 maggraph complete zsh  >> ~/.zfunc/_maggraph
 ```
+
+## Testing & backlog
+
+| Coverage today | Gap (backlog ID) |
+|----------------|------------------|
+| Golden `query` (BFS), scaffold smoke, e2e init/query/scaffold | `T-M1` — no DFS golden snapshot |
+| Leader `init --git` in e2e | `T-M2` — `init --skill`, follower `sync init` untested |
+| Sync engine unit tests | `T-H4` — follower write rejection at CLI; `T-M3` — conflict paths on `sync pull` |
+| — | `T-H3` — `maggraph complete` non-empty output smoke test |
+
+See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).

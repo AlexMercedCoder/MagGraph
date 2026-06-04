@@ -230,6 +230,21 @@ Minimum useful product for early dogfooding:
 
 Defer lakehouse, sync, UI, and MCP until local graph + query path is stable.
 
+---
+
+## Post-v0.1 — v0.1.1+ hardening
+
+Phases 0–10 delivered **v0.1.0**. Follow-up work is **not** numbered as new phases; it lives in [`BACKLOG.md`](./BACKLOG.md):
+
+| Track | Examples | IDs |
+|-------|----------|-----|
+| Test coverage | UI CRUD, MCP CRUD, CLI edge cases | `T-H*`, `T-M*` |
+| Documentation | `examples/README`, CONTRIBUTING, OpenAPI | `D-*` |
+| CI quality | Clippy feature parity, coverage, bench gate | `C-L*`, `T-L*` |
+| PRD gaps | Real HTTP/S3 fetch, Python lakehouse, mmap | `T-F*` |
+
+Use [`TESTING.md`](./TESTING.md) for how to run tests and [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md) for PRD vs shipped behavior.
+
 ## Risk register
 
 | Risk | Mitigation |

@@ -30,3 +30,12 @@ Numbers vary by hardware. On typical CI runners (Ubuntu, release build):
 | 100 traversals (ms) | &lt; 100 | &lt; 10 |
 
 See also the unit test `basic_example_traversal_under_one_ms` in `maggraph/src/graph.rs`.
+
+## Testing & backlog
+
+| Coverage today | Gap (backlog ID) |
+|----------------|------------------|
+| In-crate bench fails if avg > 1 ms | `T-L3` — CI bench job doesn't fail on regression (artifact only) |
+| In-memory adjacency | `T-F3` — mmap adjacency (Phase 3.4) deferred; re-bench when added |
+
+See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).

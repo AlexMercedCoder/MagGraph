@@ -104,3 +104,13 @@ maggraph sync pull --config follower/maggraph.toml
 ```
 
 Integration tests in `maggraph::sync::engine` cover leader push, follower pull, and follower write rejection.
+
+## Testing & backlog
+
+| Coverage today | Gap (backlog ID) |
+|----------------|------------------|
+| `SyncEngine` unit tests: follower write rejected, merge conflict in repo layer | `T-H4` — follower failed push/write not covered in CLI e2e |
+| E2E: leader push → follower pull → follower query | `T-M2` — follower `sync init` (clone) manual-only |
+| `merge_conflict_surfaces_paths` in `sync/repo.rs` | `T-M3` — no CLI test that `sync pull` prints conflict paths |
+
+See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).

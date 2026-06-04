@@ -103,3 +103,25 @@ index.create_node("new_id", node_type="note", body="# Hi\n", links=["welcome"])
 index.update_node("new_id", "# Updated\n")
 index.delete_node("new_id")
 ```
+
+## Lakehouse mode (Rust-only today)
+
+Python bindings expose `storage_mode` from config (`"local"` or `"lakehouse"`) but **do not** wrap `LakehouseReader` or external content resolution. Agents needing resolved lakehouse content should use the Rust API or CLI until bindings land.
+
+| Capability | Python | Rust |
+|------------|--------|------|
+| Index / traverse local nodes | ✅ | ✅ |
+| Read node body from disk | ✅ | ✅ |
+| Resolve `source` / `source_uri` externally | ❌ | ✅ |
+| Cache + file allowlist | ❌ | ✅ |
+
+Backlog: `T-M4` (pytest when exposed), `T-F4` (expose `LakehouseReader`).
+
+## Testing & backlog
+
+| Coverage today | Gap (backlog ID) |
+|----------------|------------------|
+| Config, index, traverse, async, CRUD (local) | `T-M4` — no lakehouse pytest |
+| MCP scaffold smoke | `T-F4` — lakehouse read not in Python API |
+
+See [`TESTING.md`](./TESTING.md), [`BACKLOG.md`](./BACKLOG.md), [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).

@@ -52,6 +52,26 @@ Threat model and mitigations for the local-first graph engine. This is an MVP re
 - `[sync].role = follower` enforces read-only CRUD via `WritePolicy`.
 - Leaders require an active `.maggraph/lock.toml` for writes.
 
+## Test references
+
+| Mitigation | Automated test |
+|------------|------------------|
+| Path traversal on node paths | `maggraph::security` unit tests; `GraphIndex::create_node_rejects_path_traversal` |
+| file:// allowlist | Lakehouse `FileResolver` unit tests |
+| HTTP host blocklist | `validate_http_uri_host` unit tests |
+| UI loopback bind | UI startup validation tests |
+| Follower read-only | `SyncEngine` / `WritePolicy` unit tests |
+
+## Backlog (security-related)
+
+| ID | Item |
+|----|------|
+| `T-H1` | Path traversal rejection via UI REST API (today: index-level only) |
+| `T-F1` | SSRF integration tests when HTTP(S) fetch is enabled |
+| MCP / UI | No auth in v0.1 — documented in [`MCP.md`](./MCP.md), [`UI.md`](./UI.md) |
+
+See [`BACKLOG.md`](./BACKLOG.md) and [`TESTING.md`](./TESTING.md).
+
 ## Reporting
 
 Open security issues privately with the repository maintainers before public disclosure.

@@ -48,3 +48,14 @@ println!("{}", node.content.to_markdown());
 | `http(s)://` | Stub: metadata only (no network I/O) |
 
 Register custom resolvers with `ResolverRegistry` for tests or future S3 integration.
+
+## Testing & backlog
+
+| Coverage today | Gap (backlog ID) |
+|----------------|------------------|
+| URI resolution, file allowlist, cache, S3 stub unit tests | `T-M5` — `GraphIndex::read_node_with_content` not tested as index API |
+| HTTP(S) host blocklist at resolve time | `T-F1` — real fetch + SSRF integration when implemented |
+| Parquet metadata MVP | `T-F2` — full S3/Parquet analytics per PRD |
+| Rust-only content read | `T-F4` — Python bindings don't expose lakehouse read |
+
+PRD vs shipped: [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md). See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).
