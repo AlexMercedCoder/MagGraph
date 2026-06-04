@@ -13,6 +13,7 @@ use cmd::init::InitArgs;
 use cmd::query::QueryArgs;
 use cmd::scaffold::ScaffoldArgs;
 use cmd::sync::SyncArgs;
+use cmd::ui::UiArgs;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -43,6 +44,8 @@ enum Commands {
     Sync(SyncArgs),
     /// Generate agent artifacts (MCP server, SKILL.md)
     Scaffold(ScaffoldArgs),
+    /// Start the embedded local web dashboard (localhost only)
+    Ui(UiArgs),
     /// Emit shell completion script to stdout
     Complete {
         /// Shell to generate completions for
@@ -95,6 +98,7 @@ fn run(cli: Cli) -> Result<()> {
         Some(Commands::Query(args)) => cmd::query::run(&resolved, &args),
         Some(Commands::Sync(args)) => cmd::sync::run(&resolved, &args),
         Some(Commands::Scaffold(args)) => cmd::scaffold::run(&resolved, &args),
+        Some(Commands::Ui(args)) => cmd::ui::run(&resolved, &args),
         Some(Commands::Complete { shell }) => {
             let mut cmd = Cli::command();
             let mut stdout = io::stdout();

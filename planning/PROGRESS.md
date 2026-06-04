@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-04 (Phase 8)  
+**Last updated:** 2026-06-04 (Phase 9)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -20,7 +20,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 6 | CLI | ✅ Complete | query, scaffold, global flags, shell completion |
 | 7 | Python bindings | ✅ Complete | PyO3 module, asyncio, type stubs, wheel CI, example script |
 | 8 | SKILL.md & MCP | ✅ Complete | Schema introspection, wired MCP, docs |
-| 9 | Embedded UI | ⬜ Not started | |
+| 9 | Embedded UI | ✅ Complete | `maggraph ui`, REST API, embedded dashboard |
 | 10 | Hardening & release | ⬜ Not started | |
 
 **Suggested MVP track:** Phases 0 → 3, then 6.1 + 8.1 (see implementation plan).
@@ -138,10 +138,10 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 9.1 | HTTP server / `maggraph ui` | ⬜ |
-| 9.2 | REST API | ⬜ |
-| 9.3 | Frontend pages | ⬜ |
-| 9.4 | Localhost-only security | ⬜ |
+| 9.1 | HTTP server / `maggraph ui` | ✅ |
+| 9.2 | REST API | ✅ |
+| 9.3 | Frontend pages | ✅ |
+| 9.4 | Localhost-only security | ✅ |
 
 ---
 
@@ -182,3 +182,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-04 | Phase 7: PyO3 Python bindings, maturin package, asyncio API, type stubs, wheel CI, `planning/PYTHON.md`, `examples/python_agent.py` |
 | 2026-06-04 | Phase 6: `maggraph query`, `scaffold --mcp` / `--skill`, `-v` tracing, `complete` subcommand, integration tests, `planning/CLI.md` |
 | 2026-06-04 | Phase 8: `maggraph::agent` schema introspection, PyO3-wired MCP scaffold, `init --skill`, Python CRUD, `planning/MCP.md`, MCP smoke test |
+| 2026-06-04 | Phase 9: `maggraph ui` Axum server, REST API, embedded dashboard, loopback bind, `planning/UI.md`, integration tests |

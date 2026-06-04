@@ -8,6 +8,8 @@ pub mod node;
 #[cfg(feature = "python")]
 pub mod python;
 pub mod sync;
+#[cfg(feature = "ui")]
+pub mod ui;
 pub mod wikilink;
 
 pub use agent::{
@@ -33,3 +35,6 @@ pub use sync::{
     DEFAULT_BRANCH, DEFAULT_REMOTE, LOCK_FILE_NAME,
 };
 pub use wikilink::{extract_wikilink_targets, extract_wikilinks, normalize_wikilink_target};
+
+#[cfg(feature = "ui")]
+pub use ui::{parse_loopback_addr, router, run as run_ui_server, AppState, UiServerOptions};

@@ -9,7 +9,10 @@ cargo build
 cargo test
 cargo run -p maggraph-cli -- --config examples/basic/maggraph.toml
 cargo run -p maggraph-cli -- query --from welcome --depth 2 --config examples/basic/maggraph.toml
+maggraph ui --config examples/basic/maggraph.toml
 ```
+
+Open http://127.0.0.1:8787 for the local dashboard. See [planning/UI.md](./planning/UI.md).
 
 ## Python bindings
 
