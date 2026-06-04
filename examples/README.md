@@ -6,6 +6,7 @@ Manual fixtures for loading `maggraph.toml` and indexing markdown nodes.
 |-----------|---------|
 | [`basic/`](./basic/) | Local-mode config with a two-node sample graph |
 | [`lakehouse/`](./lakehouse/) | PRD-style lakehouse + follower sync config and external-asset node |
+| [`python_agent.py`](./python_agent.py) | Python bindings demo (sync + asyncio) |
 
 ## Try it
 
@@ -37,3 +38,11 @@ examples/lakehouse/
 `root_path` in each config is resolved **relative to the config file's directory**, not the current working directory.
 
 Use `GraphIndex::open(resolved.root_path)` in Rust to scan all `*.md` nodes under the graph root.
+
+## Python
+
+After `maturin develop` in `python/`:
+
+```bash
+python examples/python_agent.py
+```

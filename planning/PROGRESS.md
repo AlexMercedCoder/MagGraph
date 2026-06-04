@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-04 (Phase 6)  
+**Last updated:** 2026-06-04 (Phase 7)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
@@ -18,7 +18,7 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 4 | Lakehouse mode | ✅ Complete | ContentResolver, URI rules, cache, Parquet metadata MVP |
 | 5 | Git sync & roles | ✅ Complete | SyncEngine, lock.toml, WritePolicy, CLI sync subcommand |
 | 6 | CLI | ✅ Complete | query, scaffold, global flags, shell completion |
-| 7 | Python bindings | ⬜ Not started | |
+| 7 | Python bindings | ✅ Complete | PyO3 module, asyncio, type stubs, wheel CI, example script |
 | 8 | SKILL.md & MCP | ⬜ Not started | |
 | 9 | Embedded UI | ⬜ Not started | |
 | 10 | Hardening & release | ⬜ Not started | |
@@ -115,11 +115,11 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 
 | ID | Task | Status |
 |----|------|--------|
-| 7.1 | PyO3 module | ⬜ |
-| 7.2 | pyo3-asyncio | ⬜ |
-| 7.3 | Type stubs | ⬜ |
-| 7.4 | Wheel CI | ⬜ |
-| 7.5 | Python example | ⬜ |
+| 7.1 | PyO3 module | ✅ |
+| 7.2 | pyo3-asyncio | ✅ | `pyo3-async-runtimes` asyncio + Tokio blocking pool |
+| 7.3 | Type stubs | ✅ | `__init__.pyi`, `py.typed` |
+| 7.4 | Wheel CI | ✅ | `maturin build` + artifact upload in CI |
+| 7.5 | Python example | ✅ | `examples/python_agent.py` |
 
 ---
 
@@ -179,4 +179,5 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-03 | Phase 3: wikilink parser, `GraphAdjacency`, BFS/DFS `traverse`, `TraversalResult::to_markdown`, `planning/WIKILINKS.md` |
 | 2026-06-03 | Phase 4: `LakehouseReader`, `ContentResolver` (file/s3/http), URI resolution, cache, `planning/LAKEHOUSE.md` |
 | 2026-06-04 | Phase 5: `SyncEngine`, `WritePolicy`, `lock.toml`, Git pull/push/status, role enforcement, `planning/SYNC.md`, `examples/sync/` |
+| 2026-06-04 | Phase 7: PyO3 Python bindings, maturin package, asyncio API, type stubs, wheel CI, `planning/PYTHON.md`, `examples/python_agent.py` |
 | 2026-06-04 | Phase 6: `maggraph query`, `scaffold --mcp` / `--skill`, `-v` tracing, `complete` subcommand, integration tests, `planning/CLI.md` |
