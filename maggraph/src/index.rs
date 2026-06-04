@@ -7,6 +7,7 @@ use walkdir::WalkDir;
 use crate::error::{MagGraphError, Result};
 use crate::graph::GraphAdjacency;
 use crate::node::{NewNode, Node, NodeMetadata};
+use crate::security::validate_relative_node_path;
 use crate::sync::WritePolicy;
 
 /// Lightweight index entry for a graph node (metadata + path, no body).
@@ -147,7 +148,12 @@ impl GraphIndex {
     }
 
     fn create_node_unchecked(&mut self, new_node: NewNode) -> Result<Node> {
-        let node = new_node.into_node();
+        let relative_path = validate_relative_node_path(&new_node.relative_path)?;
+        let node = NewNode {
+            relative_path,
+            ..new_node
+        }
+        .into_node();
         if self.by_id.contains_key(node.id()) {
             return Err(MagGraphError::NodeAlreadyExists {
                 id: node.id().to_string(),
@@ -304,6 +310,29 @@ links: ["welcome"]
 "#,
         )
         .expect("write getting_started");
+    }
+
+    #[test]
+    fn create_node_rejects_path_traversal() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+
+        let mut index = GraphIndex::open(&root).expect("open index");
+        let err = index
+            .create_node(NewNode {
+                metadata: NodeMetadata {
+                    id: "evil".into(),
+                    node_type: "note".into(),
+                    source: None,
+                    links: vec![],
+                    extra: Default::default(),
+                },
+                body: "# Evil".into(),
+                relative_path: PathBuf::from("../outside.md"),
+            })
+            .expect_err("traversal");
+        assert!(matches!(err, MagGraphError::Index(_)));
     }
 
     #[test]

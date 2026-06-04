@@ -32,8 +32,8 @@ walkdir.workspace = true
 git2.workspace = true
 chrono.workspace = true
 uuid.workspace = true
-pyo3 = { version = "0.23", optional = true }
-pyo3-async-runtimes = { version = "0.23", optional = true, features = ["tokio-runtime"] }
+pyo3 = { workspace = true, optional = true }
+pyo3-async-runtimes = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
@@ -41,5 +41,10 @@ tower-http = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 
 [dev-dependencies]
-tempfile = "3.14"
+tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }
+
+[[bench]]
+name = "traversal"
+path = "benches/traversal.rs"
+harness = false

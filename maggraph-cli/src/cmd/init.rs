@@ -19,6 +19,7 @@ pub struct InitArgs {
     pub skill: bool,
 }
 
+#[tracing::instrument(skip_all, fields(root = %resolved.root_path.display()))]
 pub fn run(resolved: &ResolvedConfig, args: &InitArgs) -> Result<()> {
     resolved.initialize_graph_root(!args.no_metadata_dir)?;
     tracing::info!(root = %resolved.root_path.display(), "initialized graph root");

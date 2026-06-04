@@ -31,6 +31,41 @@ jobs:
       - name: Test
         run: cargo test --all --features maggraph/ui
 
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run traversal benchmark
+        run: |
+          cargo bench -p maggraph --bench traversal 2>&1 | tee target/benchmark.txt
+
+      - name: Upload benchmark output
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-output
+          path: target/benchmark.txt
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Smoke install script
+        run: bash scripts/smoke_install.sh
+
   python:
     runs-on: ubuntu-latest
     steps:
