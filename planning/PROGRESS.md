@@ -1,7 +1,8 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-04 (Phase 10)  
-**Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
+**Last updated:** 2026-06-04 (post-v0.1 audit backlog)  
+**Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)  
+**Open work:** [`BACKLOG.md`](./BACKLOG.md) · **Testing:** [`TESTING.md`](./TESTING.md)
 
 Update this file when starting or finishing tasks. Keep phase summaries in sync with checklists below.
 
@@ -24,6 +25,19 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 10 | Hardening & release | ✅ Complete | Security, e2e tests, benchmarks, CHANGELOG, release workflow |
 
 **v0.1.0** — all planned phases complete.
+
+### Post-v0.1 backlog (v0.1.1+)
+
+Phases 0–10 are done. Remaining work from the [v0.1 audit](./BACKLOG.md) is tracked in [`BACKLOG.md`](./BACKLOG.md) with IDs (`T-H*`, `T-M*`, `D-*`, etc.). See also [`TESTING.md`](./TESTING.md) and [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).
+
+| Category | Open items (approx.) | Doc |
+|----------|----------------------|-----|
+| Testing (high) | 4 | `T-H1`–`T-H4` |
+| Testing (medium) | 5 | `T-M1`–`T-M5` |
+| Testing (low) | 3 | `T-L1`–`T-L3` |
+| Documentation | 3 open / 6 done in audit doc pass | `D-*` |
+| CI & quality | 2 | `C-L1`, `C-L2` |
+| Features (PRD follow-up) | 2 active, 3 deferred | `T-F*` |
 
 ---
 
@@ -167,6 +181,10 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | Implementation plan | ✅ |
 | Progress tracker (this file) | ✅ |
 | Security & benchmarks docs | ✅ |
+| Testing guide (`TESTING.md`) | ✅ |
+| Post-v0.1 backlog (`BACKLOG.md`) | ✅ |
+| PRD vs shipped (`IMPLEMENTATION_STATUS.md`) | ✅ |
+| Audit doc todos (D-8, D-9, D-10) | ⬜ | CONTRIBUTING, cargo doc, OpenAPI — see [`BACKLOG.md`](./BACKLOG.md) |
 
 ---
 
@@ -185,3 +203,4 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 2026-06-04 | Phase 8: `maggraph::agent` schema introspection, PyO3-wired MCP scaffold, `init --skill`, Python CRUD, `planning/MCP.md`, MCP smoke test |
 | 2026-06-04 | Phase 9: `maggraph ui` Axum server, REST API, embedded dashboard, loopback bind, `planning/UI.md`, integration tests |
 | 2026-06-04 | Phase 10: security hardening, e2e tests, traversal bench, CHANGELOG/LICENSE, release workflow; Phase 0 cleanup complete — **v0.1.0** |
+| 2026-06-04 | Post-v0.1 audit: added `TESTING.md`, `BACKLOG.md`, `IMPLEMENTATION_STATUS.md`; updated planning index and feature doc cross-links |

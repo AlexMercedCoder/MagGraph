@@ -79,10 +79,20 @@ CLI logging: `-v` / `-vv` / `-vvv`, or `RUST_LOG=maggraph=debug`.
 |-----|-------------|
 | [PRD.md](./PRD.md) | Product requirements and architecture |
 | [CHANGELOG.md](./CHANGELOG.md) | Release history |
+| [planning/README.md](./planning/README.md) | Planning index |
+| [planning/PROGRESS.md](./planning/PROGRESS.md) | Phase completion tracker |
+| [planning/BACKLOG.md](./planning/BACKLOG.md) | Post-v0.1 todos (testing, docs, PRD gaps) |
+| [planning/TESTING.md](./planning/TESTING.md) | Test layout and coverage gaps |
+| [planning/IMPLEMENTATION_STATUS.md](./planning/IMPLEMENTATION_STATUS.md) | PRD vs v0.1 shipped behavior |
+| [planning/CLI.md](./planning/CLI.md) | CLI commands and flags |
+| [planning/PYTHON.md](./planning/PYTHON.md) | Python bindings |
+| [planning/MCP.md](./planning/MCP.md) | MCP server scaffold |
+| [planning/UI.md](./planning/UI.md) | Embedded web dashboard |
+| [planning/SYNC.md](./planning/SYNC.md) | Git sync and roles |
+| [planning/LAKEHOUSE.md](./planning/LAKEHOUSE.md) | Lakehouse content resolution |
 | [planning/SECURITY.md](./planning/SECURITY.md) | Threat model and mitigations |
 | [planning/BENCHMARKS.md](./planning/BENCHMARKS.md) | Traversal latency benchmarks |
-| [planning/](./planning/) | Implementation plan, architecture reference, progress tracker |
 
 ## Planning & progress
 
-Start with [planning/README.md](./planning/README.md). Track work in [planning/PROGRESS.md](./planning/PROGRESS.md); follow phases in [planning/IMPLEMENTATION_PLAN.md](./planning/IMPLEMENTATION_PLAN.md).
+Start with [planning/README.md](./planning/README.md). Phases 0–10 are complete for v0.1; open work is in [planning/BACKLOG.md](./planning/BACKLOG.md).

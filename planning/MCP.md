@@ -78,6 +78,19 @@ Use the same `python` where `maggraph` is installed (venv recommended).
 
 The GitHub Actions `python` job runs `maggraph scaffold --mcp` on the basic example and imports the generated server to verify `maggraph` wiring.
 
+## Security
+
+The MCP server runs locally over stdio with **no authentication**. It inherits the same trust model as the CLI: suitable for a single developer machine, not multi-tenant deployment. See [`SECURITY.md`](./SECURITY.md) for the full threat model (path traversal, future network fetch SSRF).
+
+## Testing & backlog
+
+| Coverage today | Gap (backlog ID) |
+|----------------|------------------|
+| Smoke: `list_nodes`, `get_node`, `traverse_graph` import | `T-H2` — `create_node`, `update_node`, `delete_node` untested |
+| Generated server wired to PyO3 | Regenerate after schema changes (`scaffold --mcp`) |
+
+See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).
+
 ## Related docs
 
 - [`planning/PYTHON.md`](./PYTHON.md) — Python API reference
