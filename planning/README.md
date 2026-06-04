@@ -20,6 +20,7 @@ This folder holds implementation planning and progress tracking for [MagGraph](h
 | [`LAKEHOUSE.md`](./LAKEHOUSE.md) | Lakehouse mode, URI resolution, and content resolvers |
 | [`SYNC.md`](./SYNC.md) | Git sync, leader/follower roles, and write lock protocol |
 | [`CLI.md`](./CLI.md) | CLI commands, flags, and shell completion |
+| [`PYTHON.md`](./PYTHON.md) | PyO3 bindings, asyncio, maturin, and type stubs |
 
 ## How to use this folder
 

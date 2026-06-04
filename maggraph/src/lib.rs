@@ -4,6 +4,8 @@ pub mod graph;
 pub mod index;
 pub mod lakehouse;
 pub mod node;
+#[cfg(feature = "python")]
+pub mod python;
 pub mod sync;
 pub mod wikilink;
 

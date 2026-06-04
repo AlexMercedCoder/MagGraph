@@ -11,6 +11,16 @@ cargo run -p maggraph-cli -- --config examples/basic/maggraph.toml
 cargo run -p maggraph-cli -- query --from welcome --depth 2 --config examples/basic/maggraph.toml
 ```
 
+## Python bindings
+
+```bash
+pip install maturin pytest pytest-asyncio
+cd python && maturin develop --features python-ext && pytest
+python examples/python_agent.py
+```
+
+See [planning/PYTHON.md](./planning/PYTHON.md) and [python/README.md](./python/README.md).
+
 See [`examples/README.md`](./examples/README.md) for sample `maggraph.toml` files and a small knowledge graph.
 
 ## Documentation
