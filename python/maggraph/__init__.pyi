@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Awaitable, Literal, Optional
 
 class MagGraphError(Exception): ...
 
@@ -8,8 +8,9 @@ class ResolvedConfig:
     @property
     def config_path(self) -> str: ...
     @property
-    def storage_mode(self) -> str: ...
+    def storage_mode(self) -> Literal["local", "lakehouse"]: ...
     def open_index(self) -> GraphIndex: ...
+    def open_lakehouse_reader(self) -> LakehouseReader: ...
 
 class GraphIndex:
     @classmethod
@@ -19,7 +20,7 @@ class GraphIndex:
     def __len__(self) -> int: ...
     def list_nodes(self) -> list[str]: ...
     def read_node(self, node_id: str) -> Node: ...
-    def read_node_async(self, node_id: str) -> Node: ...
+    def read_node_async(self, node_id: str) -> Awaitable[Node]: ...
     def create_node(
         self,
         node_id: str,
@@ -40,7 +41,10 @@ class GraphIndex:
         from_id: str,
         depth: int = 2,
         order: Literal["bfs", "dfs"] = "bfs",
-    ) -> TraversalResult: ...
+    ) -> Awaitable[TraversalResult]: ...
+    def read_node_with_content(
+        self, reader: LakehouseReader, node_id: str
+    ) -> NodeWithContent: ...
 
 class Node:
     @property
@@ -76,6 +80,68 @@ class TraversalResult:
     @property
     def nodes(self) -> list[TraversalNode]: ...
     def to_markdown(self, index: GraphIndex) -> str: ...
+
+class ResolvedContent:
+    """Content resolved from a node source — local markdown or an external asset.
+
+    Check ``.kind`` to determine how to interpret the other attributes:
+
+    * ``"local"``          — ``.body`` is the markdown, ``.uri`` / ``.format`` are ``None``
+    * ``"text"``           — ``.uri`` and ``.body`` are set, ``.format`` is ``None``
+    * ``"external_asset"`` — ``.uri`` and ``.format`` are set, ``.body`` is ``None``
+    """
+    @property
+    def kind(self) -> Literal["local", "text", "external_asset"]: ...
+    @property
+    def body(self) -> Optional[str]: ...
+    """Markdown body (``"local"`` and ``"text"`` only; ``None`` for external assets)."""
+    @property
+    def uri(self) -> Optional[str]: ...
+    """External URI (``"text"`` and ``"external_asset"`` only)."""
+    @property
+    def format(self) -> Optional[str]: ...
+    """Detected format, e.g. ``"parquet"`` (``"external_asset"`` only)."""
+    @property
+    def size_bytes(self) -> Optional[int]: ...
+    """Size in bytes of the external asset, if known."""
+    @property
+    def parquet_magic_valid(self) -> Optional[bool]: ...
+    """Whether the PAR1 magic header is valid (Parquet assets only)."""
+    @property
+    def snippet(self) -> Optional[str]: ...
+    """Optional text snippet for external assets."""
+    def to_markdown(self) -> str: ...
+    """Markdown-friendly summary for agent consumption."""
+
+class NodeWithContent:
+    """A graph node paired with its resolved external content."""
+    @property
+    def node(self) -> Node: ...
+    @property
+    def content(self) -> ResolvedContent: ...
+
+class LakehouseReader:
+    """Resolves node content according to the configured storage mode.
+
+    Construct via :meth:`ResolvedConfig.open_lakehouse_reader`.
+
+    Example::
+
+        config = maggraph.load_config("maggraph.toml")
+        index  = config.open_index()
+        reader = config.open_lakehouse_reader()
+
+        result = reader.read_node(index, "my_asset")
+        print(result.content.to_markdown())
+    """
+    def read_node(self, index: GraphIndex, node_id: str) -> NodeWithContent: ...
+    def read_node_async(
+        self, index: GraphIndex, node_id: str
+    ) -> Awaitable[NodeWithContent]: ...
+    def cache_len(self) -> int: ...
+    """Number of entries in the in-memory content cache."""
+    def cache_bytes(self) -> int: ...
+    """Total bytes currently held in the cache."""
 
 def load_config(path: str) -> ResolvedConfig: ...
 def open_index(root_path: str) -> GraphIndex: ...

@@ -223,6 +223,17 @@ impl TraversalResult {
 /// Traverse outgoing edges from `from` up to `max_depth` hops.
 ///
 /// The start node is included at depth 0. `max_depth` of 0 returns only the start node.
+///
+/// # Example
+///
+/// ```no_run
+/// use maggraph::{GraphIndex, GraphAdjacency, TraversalOrder, traverse};
+///
+/// let index = GraphIndex::open("examples/basic/knowledge_graph").expect("open");
+/// let adj = GraphAdjacency::from_index(&index).expect("adjacency");
+/// let result = traverse(&adj, &index, "welcome", 2, TraversalOrder::Bfs).expect("traverse");
+/// println!("{}", result.to_markdown(&index));
+/// ```
 pub fn traverse(
     adjacency: &GraphAdjacency,
     index: &GraphIndex,

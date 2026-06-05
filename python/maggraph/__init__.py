@@ -2,9 +2,12 @@
 
 from maggraph._maggraph import (
     GraphIndex,
+    LakehouseReader,
     MagGraphError,
     Node,
+    NodeWithContent,
     ResolvedConfig,
+    ResolvedContent,
     TraversalNode,
     TraversalResult,
     load_config,
@@ -13,9 +16,12 @@ from maggraph._maggraph import (
 
 __all__ = [
     "GraphIndex",
+    "LakehouseReader",
     "MagGraphError",
     "Node",
+    "NodeWithContent",
     "ResolvedConfig",
+    "ResolvedContent",
     "TraversalNode",
     "TraversalResult",
     "load_config",

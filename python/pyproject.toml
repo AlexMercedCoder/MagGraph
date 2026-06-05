@@ -5,20 +5,45 @@ build-backend = "maturin"
 [project]
 name = "maggraph"
 version = "0.1.0"
-description = "Python bindings for the MagGraph Rust graph engine"
+description = "In-process graph engine for AI semantic layers — powered by Rust"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT OR Apache-2.0" }
+authors = [{ name = "Alex Merced", email = "alexmercedcoder@gmail.com" }]
+keywords = ["graph", "knowledge-graph", "agent", "ai", "mcp", "lakehouse", "rust"]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Rust",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 
+[project.urls]
+Homepage       = "https://github.com/AlexMercedCoder/MagGraph"
+Documentation  = "https://github.com/AlexMercedCoder/MagGraph/tree/main/planning"
+Repository     = "https://github.com/AlexMercedCoder/MagGraph"
+"Issue Tracker" = "https://github.com/AlexMercedCoder/MagGraph/issues"
+Changelog      = "https://github.com/AlexMercedCoder/MagGraph/blob/main/planning/PROGRESS.md"
+
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "maturin>=1.7",
+]
 
 [tool.maturin]
 manifest-path = "../maggraph/Cargo.toml"
@@ -26,6 +51,11 @@ features = ["python-ext"]
 module-name = "maggraph._maggraph"
 python-source = "."
 bindings = "pyo3"
+# Include type stubs in the wheel so IDEs see them without a separate install.
+include = [
+    { path = "maggraph/py.typed", format = "wheel" },
+    { path = "maggraph/__init__.pyi", format = "wheel" },
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

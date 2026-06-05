@@ -1,0 +1,158 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Dry-run on every PR: build wheels but do NOT publish.
+  pull_request:
+    paths:
+      - "python/**"
+      - "maggraph/src/python/**"
+      - "maggraph/Cargo.toml"
+      - ".github/workflows/publish.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Build manylinux + macOS + Windows wheels
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-wheels:
+    name: Build ${{ matrix.platform.target }} wheel
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          # Linux (manylinux_2_28 — covers ~99% of PyPI users)
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: manylinux_2_28
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            manylinux: manylinux_2_28
+          # macOS (Intel + Apple Silicon)
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            manylinux: ""
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            manylinux: ""
+          # Windows
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            manylinux: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Linux builds use the maturin-action container (includes libgit2, etc.)
+      - name: Build wheel (Linux manylinux)
+        if: matrix.platform.manylinux != ''
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          manylinux: ${{ matrix.platform.manylinux }}
+          args: >-
+            --release
+            --features python-ext
+            --manifest-path maggraph/Cargo.toml
+            --out dist
+          working-directory: python
+
+      # macOS / Windows build natively
+      - name: Build wheel (non-Linux)
+        if: matrix.platform.manylinux == ''
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: >-
+            --release
+            --features python-ext
+            --manifest-path maggraph/Cargo.toml
+            --out dist
+          working-directory: python
+
+      # Smoke test: install from the built wheel in a clean venv and import.
+      - name: Smoke test wheel
+        if: matrix.platform.target != 'aarch64-unknown-linux-gnu'
+        shell: bash
+        working-directory: python
+        run: |
+          python -m venv .smoke-venv
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            .smoke-venv/Scripts/pip install --find-links dist --no-index maggraph
+            .smoke-venv/Scripts/python -c "import maggraph; print('version:', maggraph.__version__)"
+          else
+            .smoke-venv/bin/pip install --find-links dist --no-index maggraph
+            .smoke-venv/bin/python -c "import maggraph; print('version:', maggraph.__version__)"
+          fi
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform.target }}
+          path: python/dist/*.whl
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Build sdist (source distribution — fallback for unsupported platforms)
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+          working-directory: python
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: python/dist/*.tar.gz
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Publish to PyPI (only on version tags)
+  # ─────────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-wheels, build-sdist]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/maggraph
+    permissions:
+      id-token: write  # Trusted Publishing (OIDC) — no API token needed
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

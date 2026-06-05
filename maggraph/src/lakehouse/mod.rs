@@ -341,4 +341,45 @@ source_uri: "s3://lake/data.parquet"
             crate::node::parse_markdown_node(raw, PathBuf::from("x.md").as_path()).expect("parse");
         assert_eq!(metadata.source.as_deref(), Some("s3://lake/data.parquet"));
     }
+
+    // T-M5: GraphIndex::read_node_with_content is a public API — test it directly.
+    #[test]
+    fn read_node_with_content_delegates_to_reader_local() {
+        let temp = TempDir::new().expect("temp");
+        let root = temp.path().join("graph");
+        fs::create_dir_all(&root).expect("dir");
+        fs::write(
+            root.join("api_test.md"),
+            r#"---
+id: "api_test"
+type: "note"
+---
+# API Test body
+"#,
+        )
+        .expect("write");
+
+        let config_path = temp.path().join("maggraph.toml");
+        fs::write(
+            &config_path,
+            r#"
+[storage]
+mode = "local"
+root_path = "./graph"
+"#,
+        )
+        .expect("write config");
+
+        let resolved = MagGraphConfig::load(&config_path).expect("load");
+        let index = GraphIndex::open(&resolved.root_path).expect("index");
+        let mut reader = LakehouseReader::from_config(&resolved);
+
+        // Call the public API under test.
+        let result = index
+            .read_node_with_content(&mut reader, "api_test")
+            .expect("read_node_with_content");
+
+        assert_eq!(result.node.metadata.id, "api_test");
+        assert!(result.content.to_markdown().contains("API Test body"));
+    }
 }

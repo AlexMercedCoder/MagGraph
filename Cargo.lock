@@ -865,6 +865,7 @@ name = "maggraph-cli"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "axum",
  "clap",
  "clap_complete",
  "maggraph",
@@ -873,6 +874,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "ureq",

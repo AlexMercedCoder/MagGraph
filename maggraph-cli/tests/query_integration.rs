@@ -43,3 +43,71 @@ fn help_lists_query_and_scaffold() {
         .stdout(predicate::str::contains("query"))
         .stdout(predicate::str::contains("scaffold"));
 }
+
+// T-M1: DFS golden snapshot
+#[test]
+fn query_dfs_traversal_matches_golden_markdown() {
+    let golden = include_str!("fixtures/query_welcome_depth1_dfs.md");
+
+    maggraph_cmd()
+        .args([
+            "query", "--from", "welcome", "--depth", "1", "--order", "dfs",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::eq(golden));
+}
+
+// T-H3: shell completion smoke — assert non-empty output for every supported shell.
+// The `complete` subcommand does not require a valid config on disk; it only reads
+// the CLI structure at compile time, so we pass the default path and rely on the
+// fact that a missing config is handled after arg parsing.
+#[test]
+fn complete_bash_emits_non_empty_script() {
+    Command::cargo_bin("maggraph")
+        .expect("maggraph binary")
+        .args(["complete", "bash"])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r"(?s).{20,}").expect("regex"));
+}
+
+#[test]
+fn complete_zsh_emits_non_empty_script() {
+    Command::cargo_bin("maggraph")
+        .expect("maggraph binary")
+        .args(["complete", "zsh"])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r"(?s).{20,}").expect("regex"));
+}
+
+#[test]
+fn complete_fish_emits_non_empty_script() {
+    Command::cargo_bin("maggraph")
+        .expect("maggraph binary")
+        .args(["complete", "fish"])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r"(?s).{20,}").expect("regex"));
+}
+
+#[test]
+fn complete_elvish_emits_non_empty_script() {
+    Command::cargo_bin("maggraph")
+        .expect("maggraph binary")
+        .args(["complete", "elvish"])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r"(?s).{20,}").expect("regex"));
+}
+
+#[test]
+fn complete_powershell_emits_non_empty_script() {
+    Command::cargo_bin("maggraph")
+        .expect("maggraph binary")
+        .args(["complete", "power-shell"])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r"(?s).{20,}").expect("regex"));
+}

@@ -1,4 +1,6 @@
-//! PyO3 bindings for MagGraph (Phase 7).
+//! PyO3 bindings for MagGraph (Phase 7 + T-F4 lakehouse extension).
+
+use std::sync::{Arc, Mutex};
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -11,6 +13,9 @@ use crate::config::StorageMode;
 use crate::error::MagGraphError as CoreError;
 use crate::graph::{traverse, TraversalOrder, TraversalResult as CoreTraversalResult};
 use crate::index::GraphIndex;
+use crate::lakehouse::{
+    LakehouseReader, NodeWithContent as CoreNodeWithContent, ResolvedContent as CoreResolvedContent,
+};
 use crate::node::{NewNode, Node as CoreNode, NodeMetadata};
 use crate::MagGraphConfig;
 
@@ -108,6 +113,251 @@ fn metadata_to_dict<'py>(py: Python<'py>, metadata: &NodeMetadata) -> PyResult<B
     Ok(dict)
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ResolvedContent
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Content returned when reading a node in Python.
+///
+/// `kind` is one of ``"local"``, ``"text"``, or ``"external_asset"``.
+/// Use `.to_markdown()` to get a human/agent-friendly string regardless of kind.
+#[pyclass(name = "ResolvedContent")]
+#[derive(Clone)]
+pub struct PyResolvedContent {
+    inner: CoreResolvedContent,
+}
+
+#[pymethods]
+impl PyResolvedContent {
+    /// One of ``"local"``, ``"text"``, or ``"external_asset"``.
+    #[getter]
+    fn kind(&self) -> &'static str {
+        match &self.inner {
+            CoreResolvedContent::LocalMarkdown { .. } => "local",
+            CoreResolvedContent::Text { .. } => "text",
+            CoreResolvedContent::ExternalAsset { .. } => "external_asset",
+        }
+    }
+
+    /// The markdown body for ``"local"`` and ``"text"`` content; ``None`` for external assets.
+    #[getter]
+    fn body(&self) -> Option<&str> {
+        match &self.inner {
+            CoreResolvedContent::LocalMarkdown { body } => Some(body.as_str()),
+            CoreResolvedContent::Text { body, .. } => Some(body.as_str()),
+            CoreResolvedContent::ExternalAsset { .. } => None,
+        }
+    }
+
+    /// The external URI for ``"text"`` and ``"external_asset"`` content; ``None`` for local.
+    #[getter]
+    fn uri(&self) -> Option<&str> {
+        match &self.inner {
+            CoreResolvedContent::LocalMarkdown { .. } => None,
+            CoreResolvedContent::Text { uri, .. } => Some(uri.as_str()),
+            CoreResolvedContent::ExternalAsset { uri, .. } => Some(uri.as_str()),
+        }
+    }
+
+    /// The detected format for ``"external_asset"`` content (e.g. ``"parquet"``); ``None`` otherwise.
+    #[getter]
+    fn format(&self) -> Option<&str> {
+        match &self.inner {
+            CoreResolvedContent::ExternalAsset { format, .. } => Some(format.as_str()),
+            _ => None,
+        }
+    }
+
+    /// Size in bytes of the external asset, if known.
+    #[getter]
+    fn size_bytes(&self) -> Option<u64> {
+        match &self.inner {
+            CoreResolvedContent::ExternalAsset { metadata, .. } => metadata.size_bytes,
+            _ => None,
+        }
+    }
+
+    /// Whether the Parquet magic header is valid (external Parquet assets only).
+    #[getter]
+    fn parquet_magic_valid(&self) -> Option<bool> {
+        match &self.inner {
+            CoreResolvedContent::ExternalAsset { metadata, .. } => {
+                metadata.parquet.as_ref().map(|p| p.magic_valid)
+            }
+            _ => None,
+        }
+    }
+
+    /// Optional text snippet for external assets.
+    #[getter]
+    fn snippet(&self) -> Option<&str> {
+        match &self.inner {
+            CoreResolvedContent::ExternalAsset { snippet, .. } => snippet.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// Markdown-friendly summary suitable for agent consumption.
+    fn to_markdown(&self) -> String {
+        self.inner.to_markdown()
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.inner {
+            CoreResolvedContent::LocalMarkdown { body } => {
+                format!("ResolvedContent(kind='local', body_len={})", body.len())
+            }
+            CoreResolvedContent::Text { uri, body } => {
+                format!(
+                    "ResolvedContent(kind='text', uri={uri:?}, body_len={})",
+                    body.len()
+                )
+            }
+            CoreResolvedContent::ExternalAsset { uri, format, .. } => {
+                format!("ResolvedContent(kind='external_asset', uri={uri:?}, format={format:?})")
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NodeWithContent
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A graph node paired with its resolved external content.
+///
+/// Access the raw node via `.node` and the resolved content via `.content`.
+#[pyclass(name = "NodeWithContent")]
+pub struct PyNodeWithContent {
+    inner: CoreNodeWithContent,
+}
+
+#[pymethods]
+impl PyNodeWithContent {
+    /// The graph node (metadata + markdown body).
+    #[getter]
+    fn node(&self) -> PyNode {
+        PyNode {
+            inner: self.inner.node.clone(),
+        }
+    }
+
+    /// The resolved content (local markdown or external asset).
+    #[getter]
+    fn content(&self) -> PyResolvedContent {
+        PyResolvedContent {
+            inner: self.inner.content.clone(),
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "NodeWithContent(id={:?}, kind={:?})",
+            self.inner.node.id(),
+            match &self.inner.content {
+                CoreResolvedContent::LocalMarkdown { .. } => "local",
+                CoreResolvedContent::Text { .. } => "text",
+                CoreResolvedContent::ExternalAsset { .. } => "external_asset",
+            }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LakehouseReader
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Reads node content according to the configured storage mode.
+///
+/// In ``"local"`` mode, returns the markdown body from disk.
+/// In ``"lakehouse"`` mode, resolves the ``source`` / ``source_uri`` field
+/// against the configured remote sources and returns the external content.
+///
+/// Construct via :meth:`ResolvedConfig.open_lakehouse_reader`.
+///
+/// Example::
+///
+///     config = maggraph.load_config("maggraph.toml")
+///     index  = config.open_index()
+///     reader = config.open_lakehouse_reader()
+///
+///     result = reader.read_node(index, "my_asset")
+///     print(result.content.to_markdown())
+#[pyclass(name = "LakehouseReader")]
+pub struct PyLakehouseReader {
+    // Arc<Mutex<…>> lets us share across Python threads and async tasks.
+    inner: Arc<Mutex<LakehouseReader>>,
+}
+
+#[pymethods]
+impl PyLakehouseReader {
+    /// Read a node and resolve its external content synchronously.
+    ///
+    /// Returns a :class:`NodeWithContent` with both the node metadata/body
+    /// and the resolved content (local or external).
+    fn read_node(&self, index: &PyGraphIndex, node_id: &str) -> PyResult<PyNodeWithContent> {
+        let mut reader = self
+            .inner
+            .lock()
+            .map_err(|e| task_err(format!("reader lock poisoned: {e}")))?;
+        let result = reader.read_node(&index.inner, node_id).map_err(map_err)?;
+        Ok(PyNodeWithContent { inner: result })
+    }
+
+    /// Read a node and resolve its external content asynchronously.
+    ///
+    /// Returns an awaitable :class:`NodeWithContent`. Blocking Rust I/O runs
+    /// on a Tokio thread pool so the Python event loop stays responsive.
+    fn read_node_async<'py>(
+        &self,
+        py: Python<'py>,
+        index: &PyGraphIndex,
+        node_id: String,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let reader_arc = Arc::clone(&self.inner);
+        let index_clone = index.inner.clone();
+        future_into_py(py, async move {
+            tokio::task::spawn_blocking(move || {
+                let mut reader = reader_arc
+                    .lock()
+                    .map_err(|e| task_err(format!("reader lock poisoned: {e}")))?;
+                reader
+                    .read_node(&index_clone, &node_id)
+                    .map_err(map_err)
+                    .map(|inner| PyNodeWithContent { inner })
+            })
+            .await
+            .map_err(|e| task_err(format!("task join error: {e}")))?
+        })
+    }
+
+    /// Number of entries currently in the in-memory content cache.
+    fn cache_len(&self) -> PyResult<usize> {
+        let reader = self
+            .inner
+            .lock()
+            .map_err(|e| task_err(format!("reader lock poisoned: {e}")))?;
+        Ok(reader.cache().len())
+    }
+
+    /// Total bytes currently held in the in-memory content cache.
+    fn cache_bytes(&self) -> PyResult<usize> {
+        let reader = self
+            .inner
+            .lock()
+            .map_err(|e| task_err(format!("reader lock poisoned: {e}")))?;
+        Ok(reader.cache().current_bytes())
+    }
+
+    fn __repr__(&self) -> String {
+        "LakehouseReader()".to_string()
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ResolvedConfig
+// ─────────────────────────────────────────────────────────────────────────────
+
 #[pyclass(name = "ResolvedConfig")]
 #[derive(Clone)]
 struct PyResolvedConfig {
@@ -137,6 +387,17 @@ impl PyResolvedConfig {
         })
     }
 
+    /// Open a :class:`LakehouseReader` configured from this config.
+    ///
+    /// In ``"local"`` mode the reader simply returns markdown bodies.
+    /// In ``"lakehouse"`` mode it resolves ``source`` URIs against remote sources.
+    fn open_lakehouse_reader(&self) -> PyResult<PyLakehouseReader> {
+        let reader = LakehouseReader::from_config(&self.inner);
+        Ok(PyLakehouseReader {
+            inner: Arc::new(Mutex::new(reader)),
+        })
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "ResolvedConfig(root_path={:?}, storage_mode={:?})",
@@ -159,6 +420,10 @@ fn open_index(root_path: &str) -> PyResult<PyGraphIndex> {
         inner: GraphIndex::open(root_path).map_err(map_err)?,
     })
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GraphIndex
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[pyclass(name = "GraphIndex")]
 struct PyGraphIndex {
@@ -267,14 +532,26 @@ impl PyGraphIndex {
         let index = self.inner.clone();
         future_into_py(py, async move {
             tokio::task::spawn_blocking(move || {
-                let adj = index.adjacency()?;
+                let adj = index.adjacency().map_err(map_err)?;
                 traverse(&adj, &index, &from_id, depth, traversal_order)
+                    .map_err(map_err)
+                    .map(|inner| PyTraversalResult { inner })
             })
             .await
             .map_err(|e| task_err(format!("task join error: {e}")))?
-            .map(|inner| PyTraversalResult { inner })
-            .map_err(map_err)
         })
+    }
+
+    /// Read a node with external content resolution via a :class:`LakehouseReader`.
+    ///
+    /// Equivalent to ``reader.read_node(index, node_id)`` but callable directly
+    /// on the index. Useful when you already have a reader open.
+    fn read_node_with_content(
+        &self,
+        reader: &PyLakehouseReader,
+        node_id: &str,
+    ) -> PyResult<PyNodeWithContent> {
+        reader.read_node(self, node_id)
     }
 
     fn __repr__(&self) -> String {
@@ -285,6 +562,10 @@ impl PyGraphIndex {
         )
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Node
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[pyclass(name = "Node")]
 struct PyNode {
@@ -338,6 +619,10 @@ impl PyNode {
         format!("Node(id={:?}, type={:?})", self.id(), self.node_type())
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TraversalNode / TraversalResult
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[pyclass(name = "TraversalNode")]
 struct PyTraversalNode {
@@ -411,6 +696,10 @@ impl PyTraversalResult {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Module registration
+// ─────────────────────────────────────────────────────────────────────────────
+
 #[pymodule]
 fn _maggraph(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("MagGraphError", m.py().get_type::<PyMagGraphError>())?;
@@ -419,6 +708,10 @@ fn _maggraph(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyNode>()?;
     m.add_class::<PyTraversalNode>()?;
     m.add_class::<PyTraversalResult>()?;
+    // T-F4: lakehouse bindings
+    m.add_class::<PyResolvedContent>()?;
+    m.add_class::<PyNodeWithContent>()?;
+    m.add_class::<PyLakehouseReader>()?;
     m.add_function(wrap_pyfunction!(load_config, m)?)?;
     m.add_function(wrap_pyfunction!(open_index, m)?)?;
     Ok(())

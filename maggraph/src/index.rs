@@ -33,6 +33,16 @@ pub struct GraphIndex {
 
 impl GraphIndex {
     /// Open an index at `root_path`, performing a full scan of `*.md` files.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use maggraph::GraphIndex;
+    ///
+    /// let index = GraphIndex::open("examples/basic/knowledge_graph").expect("open");
+    /// assert!(index.contains("welcome"));
+    /// println!("Loaded {} nodes", index.len());
+    /// ```
     pub fn open(root_path: impl AsRef<Path>) -> Result<Self> {
         let root_path = root_path.as_ref().to_path_buf();
         if !root_path.is_dir() {
@@ -123,6 +133,16 @@ impl GraphIndex {
     }
 
     /// Read the full node (including body) by id.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use maggraph::GraphIndex;
+    ///
+    /// let index = GraphIndex::open("examples/basic/knowledge_graph").expect("open");
+    /// let node = index.read_node("welcome").expect("node");
+    /// println!("{}", node.body);
+    /// ```
     pub fn read_node(&self, id: &str) -> Result<Node> {
         let entry = self
             .by_id

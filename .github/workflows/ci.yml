@@ -25,11 +25,28 @@ jobs:
       - name: Format check
         run: cargo fmt --all -- --check
 
+      # C-L1: Clippy must use the same feature flags as the test step to avoid
+      # missing warnings in feature-gated code paths (ui, python stubs, etc.).
       - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets --features maggraph/ui -- -D warnings
 
       - name: Test
         run: cargo test --all --features maggraph/ui
+
+      # T-L2: Coverage report using cargo-llvm-cov (install on demand in CI).
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Coverage
+        run: |
+          cargo llvm-cov --all --features maggraph/ui --lcov --output-path lcov.info
+          cargo llvm-cov report --features maggraph/ui --summary-only
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: lcov.info
 
   benchmark:
     runs-on: ubuntu-latest
@@ -42,9 +59,18 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      # T-L3: Run bench and fail if per_traversal_us exceeds 1000 µs (1 ms gate).
       - name: Run traversal benchmark
         run: |
           cargo bench -p maggraph --bench traversal 2>&1 | tee target/benchmark.txt
+          if grep -q "per_traversal_us:" target/benchmark.txt; then
+            us=$(grep "per_traversal_us:" target/benchmark.txt | awk '{print $2}' | cut -d. -f1)
+            if [ "$us" -ge 1000 ]; then
+              echo "BENCH REGRESSION: per_traversal_us=${us} exceeds 1000 µs gate" >&2
+              exit 1
+            fi
+            echo "Benchmark OK: ${us} µs/traversal"
+          fi
 
       - name: Upload benchmark output
         uses: actions/upload-artifact@v4
@@ -88,7 +114,7 @@ jobs:
         working-directory: python
         run: |
           python -m venv .venv
-          .venv/bin/pip install maturin pytest pytest-asyncio
+          .venv/bin/pip install maturin pytest pytest-asyncio fastmcp
           .venv/bin/maturin build --release --features python-ext
 
       - name: Build maggraph CLI (for scaffold smoke test)
@@ -100,9 +126,53 @@ jobs:
           .venv/bin/maturin develop --release --features python-ext
           .venv/bin/pytest -v
 
+      # T-F5: Smoke-test the built wheel in a clean venv (no maturin, no dev install).
+      - name: Wheel smoke test (clean venv)
+        working-directory: python
+        run: |
+          python -m venv .smoke-venv
+          .smoke-venv/bin/pip install --find-links target/wheels --no-index maggraph
+          .smoke-venv/bin/python -c "
+          import maggraph, pathlib
+          print('maggraph version:', maggraph.__version__)
+          index = maggraph.open_index(str(pathlib.Path('..') / 'examples' / 'basic' / 'knowledge_graph'))
+          nodes = index.list_nodes()
+          assert 'welcome' in nodes, f'expected welcome node, got: {nodes}'
+          print('Wheel smoke OK — nodes:', nodes)
+          "
+
+      # C-L2: Also verify that `maggraph ui --dry-run` and `maggraph sync --help`
+      # work correctly from the debug binary (smoke only, no port binding needed).
+      - name: Sync and UI CLI smoke (Python job)
+        run: |
+          cargo run -p maggraph-cli -- --config examples/basic/maggraph.toml ui --dry-run
+          cargo run -p maggraph-cli -- --config examples/basic/maggraph.toml sync --help
+
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
           name: maggraph-wheel
           path: python/target/wheels/*.whl
           if-no-files-found: error
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      # D-9: Build Rust API docs and treat warnings as errors.
+      - name: Build Rust API docs
+        run: |
+          RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --features maggraph/ui
+
+      - name: Upload API docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-api-docs
+          path: target/doc/

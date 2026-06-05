@@ -25,3 +25,6 @@ predicates = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
 ureq = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

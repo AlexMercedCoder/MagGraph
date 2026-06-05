@@ -1,0 +1,378 @@
+openapi: "3.1.0"
+info:
+  title: MagGraph REST API
+  version: "0.1.0"
+  description: |
+    REST interface served by `maggraph ui`. Binds to loopback only
+    (127.0.0.1 or ::1). No authentication is required; the API is
+    intended for local development use only.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: "http://127.0.0.1:8787"
+    description: Default local server
+  - url: "http://127.0.0.1:{port}"
+    description: Custom port
+    variables:
+      port:
+        default: "8787"
+
+tags:
+  - name: nodes
+    description: Node CRUD operations
+  - name: edges
+    description: Edge queries and adjacency
+
+paths:
+  /api/nodes:
+    get:
+      operationId: listNodes
+      summary: List all nodes
+      description: Returns metadata for every indexed node (id, type, path). Body is excluded for performance.
+      tags: [nodes]
+      responses:
+        "200":
+          description: Array of node summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NodeSummary"
+              example:
+                - id: welcome
+                  type: note
+                  relative_path: "welcome.md"
+                - id: getting_started
+                  type: note
+                  relative_path: "getting_started.md"
+
+    post:
+      operationId: createNode
+      summary: Create a new node
+      description: |
+        Writes a new markdown node to disk and adds it to the in-memory index.
+        The `id` must be unique. The `relative_path` must not escape the graph
+        root (path traversal attempts return `400`). Returns `409` if the `id`
+        or the path already exists.
+      tags: [nodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNodeRequest"
+            example:
+              id: "agent_test"
+              type: "note"
+              body: "# Agent Test\n"
+              relative_path: "agent_test.md"
+              links: ["welcome"]
+      responses:
+        "201":
+          description: Node created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeDetail"
+        "400":
+          description: Bad request (invalid path, missing fields, path traversal)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Node with this id or path already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/nodes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Node id (as declared in frontmatter)
+        schema:
+          type: string
+          example: welcome
+
+    get:
+      operationId: getNode
+      summary: Get a node by id
+      description: Returns full node metadata and markdown body.
+      tags: [nodes]
+      responses:
+        "200":
+          description: Node found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeDetail"
+        "404":
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateNode
+      summary: Update a node
+      description: |
+        Replaces the specified fields in an existing node. All fields are
+        optional; only provided fields are changed. The `id` and `relative_path`
+        cannot be changed via PATCH.
+      tags: [nodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNodeRequest"
+            example:
+              body: "# Updated body\n"
+              links: ["getting_started", "new_reference"]
+      responses:
+        "200":
+          description: Node updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeDetail"
+        "404":
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteNode
+      summary: Delete a node
+      description: Removes the node from the index and deletes the `.md` file on disk.
+      tags: [nodes]
+      responses:
+        "204":
+          description: Node deleted (no body)
+        "404":
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/edges:
+    get:
+      operationId: listEdges
+      summary: List resolved edges and unresolved targets
+      description: |
+        Builds the directed adjacency graph from frontmatter `links` and body
+        wikilinks, then returns resolved edges and any targets that could not
+        be resolved to a known node id.
+      tags: [edges]
+      responses:
+        "200":
+          description: Edge graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeGraph"
+              example:
+                edges:
+                  - from: welcome
+                    to: getting_started
+                  - from: getting_started
+                    to: welcome
+                unresolved:
+                  - from: welcome
+                    raw_target: "missing_page"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    NodeSummary:
+      type: object
+      required: [id, type, relative_path]
+      properties:
+        id:
+          type: string
+          description: Node id (unique in the graph)
+          example: welcome
+        type:
+          type: string
+          description: Node type from frontmatter
+          example: note
+        relative_path:
+          type: string
+          description: Relative path from graph root
+          example: "welcome.md"
+
+    NodeDetail:
+      allOf:
+        - $ref: "#/components/schemas/NodeSummary"
+        - type: object
+          required: [body, links]
+          properties:
+            body:
+              type: string
+              description: Full markdown body (without frontmatter)
+              example: "# Welcome\n\nThis is the welcome node.\n"
+            source:
+              type: string
+              nullable: true
+              description: External data source URI (lakehouse mode)
+              example: "s3://lake/data.parquet"
+            links:
+              type: array
+              items:
+                type: string
+              description: Outgoing frontmatter links
+              example: ["getting_started"]
+            extra:
+              type: object
+              description: Additional frontmatter fields (arbitrary key-value)
+              additionalProperties: true
+
+    CreateNodeRequest:
+      type: object
+      required: [id, type, body, relative_path]
+      properties:
+        id:
+          type: string
+          description: Unique node id
+          example: new_node
+        type:
+          type: string
+          description: Node type
+          example: note
+        body:
+          type: string
+          description: Markdown body (without frontmatter)
+          example: "# New Node\n"
+        relative_path:
+          type: string
+          description: |
+            Path relative to the graph root. Must not contain `..` components
+            or otherwise escape the root directory.
+          example: "new_node.md"
+        source:
+          type: string
+          nullable: true
+          description: External source URI (optional, lakehouse mode)
+        links:
+          type: array
+          items:
+            type: string
+          description: Outgoing frontmatter links
+          default: []
+        extra:
+          type: object
+          description: Additional frontmatter fields
+          additionalProperties: true
+
+    UpdateNodeRequest:
+      type: object
+      description: All fields are optional; only provided fields are updated.
+      properties:
+        body:
+          type: string
+          description: New markdown body (replaces existing body)
+        type:
+          type: string
+          description: New node type
+        source:
+          type: string
+          nullable: true
+          description: New external source URI
+        links:
+          type: array
+          items:
+            type: string
+          description: Replacement frontmatter links list
+        extra:
+          type: object
+          description: Extra frontmatter fields to merge into the node
+          additionalProperties: true
+
+    Edge:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          description: Source node id
+          example: welcome
+        to:
+          type: string
+          description: Target node id
+          example: getting_started
+
+    UnresolvedTarget:
+      type: object
+      required: [from, raw_target]
+      properties:
+        from:
+          type: string
+          description: Node id that contains the unresolved link
+          example: welcome
+        raw_target:
+          type: string
+          description: The raw wikilink or frontmatter link that could not be resolved
+          example: "missing_page"
+
+    EdgeGraph:
+      type: object
+      required: [edges, unresolved]
+      properties:
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Edge"
+          description: Directed edges that were fully resolved to known node ids
+        unresolved:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnresolvedTarget"
+          description: Links that could not be resolved to any indexed node
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error description
+          example: "node 'missing' not found"

@@ -91,6 +91,23 @@ fn init_tracing(verbose: u8) {
 }
 
 fn run(cli: Cli) -> Result<()> {
+    // `complete` generates a shell completion script from the CLI structure alone;
+    // it does not read any graph config, so we handle it before loading maggraph.toml.
+    if let Some(Commands::Complete { shell }) = &cli.command {
+        let mut cmd = Cli::command();
+        let mut stdout = io::stdout();
+        match shell {
+            ShellChoice::Bash => generate(shells::Bash, &mut cmd, "maggraph", &mut stdout),
+            ShellChoice::Zsh => generate(shells::Zsh, &mut cmd, "maggraph", &mut stdout),
+            ShellChoice::Fish => generate(shells::Fish, &mut cmd, "maggraph", &mut stdout),
+            ShellChoice::Elvish => generate(shells::Elvish, &mut cmd, "maggraph", &mut stdout),
+            ShellChoice::PowerShell => {
+                generate(shells::PowerShell, &mut cmd, "maggraph", &mut stdout)
+            }
+        }
+        return Ok(());
+    }
+
     let resolved = MagGraphConfig::load(&cli.config)?;
 
     match cli.command {
@@ -99,20 +116,7 @@ fn run(cli: Cli) -> Result<()> {
         Some(Commands::Sync(args)) => cmd::sync::run(&resolved, &args),
         Some(Commands::Scaffold(args)) => cmd::scaffold::run(&resolved, &args),
         Some(Commands::Ui(args)) => cmd::ui::run(&resolved, &args),
-        Some(Commands::Complete { shell }) => {
-            let mut cmd = Cli::command();
-            let mut stdout = io::stdout();
-            match shell {
-                ShellChoice::Bash => generate(shells::Bash, &mut cmd, "maggraph", &mut stdout),
-                ShellChoice::Zsh => generate(shells::Zsh, &mut cmd, "maggraph", &mut stdout),
-                ShellChoice::Fish => generate(shells::Fish, &mut cmd, "maggraph", &mut stdout),
-                ShellChoice::Elvish => generate(shells::Elvish, &mut cmd, "maggraph", &mut stdout),
-                ShellChoice::PowerShell => {
-                    generate(shells::PowerShell, &mut cmd, "maggraph", &mut stdout)
-                }
-            }
-            Ok(())
-        }
+        Some(Commands::Complete { .. }) => unreachable!("handled above"),
         None => {
             tracing::info!(
                 mode = ?resolved.config.storage.mode,
