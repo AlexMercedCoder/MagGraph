@@ -7,6 +7,8 @@ use walkdir::WalkDir;
 use crate::error::{MagGraphError, Result};
 use crate::graph::GraphAdjacency;
 use crate::node::{NewNode, Node, NodeMetadata};
+use crate::query::{changed_since, GraphChange, QueryOptions, SearchResult};
+use crate::recall::{recall_bundle, RecallBundle};
 use crate::security::validate_relative_node_path;
 use crate::sync::WritePolicy;
 
@@ -130,6 +132,67 @@ impl GraphIndex {
     /// Build directed adjacency from frontmatter `links` and body wikilinks.
     pub fn adjacency(&self) -> Result<GraphAdjacency> {
         GraphAdjacency::from_index(self)
+    }
+
+    /// Refresh one markdown file in the index after a write, delete, or external change.
+    pub fn update_file(&mut self, path: impl AsRef<Path>) -> Result<Option<String>> {
+        let input = path.as_ref();
+        let full_path = if input.is_absolute() {
+            input.to_path_buf()
+        } else {
+            self.root_path.join(input)
+        };
+        let relative_path = full_path
+            .strip_prefix(&self.root_path)
+            .map_err(|_| {
+                MagGraphError::Index(format!(
+                    "path {} is not under graph root {}",
+                    full_path.display(),
+                    self.root_path.display()
+                ))
+            })?
+            .to_path_buf();
+        validate_relative_node_path(&relative_path)?;
+
+        if relative_path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+            return Ok(None);
+        }
+
+        if let Some(existing_id) = self.by_path.remove(&relative_path) {
+            self.by_id.remove(&existing_id);
+        }
+
+        if !full_path.exists() {
+            return Ok(None);
+        }
+
+        let node = Node::from_file(&full_path, &self.root_path)?;
+        let id = node.id().to_string();
+        self.insert_entry(node.metadata, relative_path)?;
+        Ok(Some(id))
+    }
+
+    /// Nodes with files modified after a Unix timestamp.
+    pub fn changed_since(&self, since_unix: i64) -> Vec<GraphChange> {
+        changed_since(self, since_unix)
+    }
+
+    /// Structured graph-native search over ids, types, frontmatter, links, body, tags, and recency.
+    pub fn search(&self, options: &QueryOptions) -> Result<Vec<SearchResult>> {
+        crate::query::search_index(self, options)
+    }
+
+    /// Node ids that link to `id`.
+    pub fn backlinks(&self, id: &str) -> Result<Vec<String>> {
+        if !self.contains(id) {
+            return Err(MagGraphError::NodeNotFound { id: id.to_string() });
+        }
+        Ok(self.adjacency()?.backlinks(id).to_vec())
+    }
+
+    /// Agent-friendly compact retrieval bundle with links, backlinks, metadata, and body excerpt.
+    pub fn recall_bundle(&self, id: &str, reason: &str, body_chars: usize) -> Result<RecallBundle> {
+        recall_bundle(self, id, reason, body_chars)
     }
 
     /// Read the full node (including body) by id.
@@ -265,6 +328,59 @@ impl GraphIndex {
         }
 
         Ok(())
+    }
+
+    /// Mark a node suppressed while preserving it on disk.
+    pub fn suppress_node(&mut self, id: &str, reason: Option<&str>) -> Result<()> {
+        let mut node = self.read_node(id)?;
+        node.metadata
+            .extra
+            .insert("suppressed".to_string(), serde_yaml::Value::Bool(true));
+        if let Some(reason) = reason {
+            node.metadata.extra.insert(
+                "suppressed_reason".to_string(),
+                serde_yaml::Value::String(reason.to_string()),
+            );
+        }
+        self.update_node(node)
+    }
+
+    /// Remove suppression metadata from a node.
+    pub fn unsuppress_node(&mut self, id: &str) -> Result<()> {
+        let mut node = self.read_node(id)?;
+        node.metadata.extra.remove("suppressed");
+        node.metadata.extra.remove("suppressed_reason");
+        self.update_node(node)
+    }
+
+    /// Merge a source node into a target node, preserving provenance, then delete the source.
+    pub fn merge_nodes(&mut self, target_id: &str, source_id: &str) -> Result<()> {
+        if target_id == source_id {
+            return Err(MagGraphError::Index(
+                "cannot merge a node into itself".to_string(),
+            ));
+        }
+        let mut target = self.read_node(target_id)?;
+        let source = self.read_node(source_id)?;
+        if !target.body.ends_with('\n') {
+            target.body.push('\n');
+        }
+        target.body.push_str(&format!(
+            "\n---\n\n## Merged from `{}`\n\n{}",
+            source.id(),
+            source.body
+        ));
+        for link in source.metadata.links {
+            if link != target_id && !target.metadata.links.contains(&link) {
+                target.metadata.links.push(link);
+            }
+        }
+        target.metadata.extra.insert(
+            "merged_from".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(source_id.to_string())]),
+        );
+        self.update_node(target)?;
+        self.delete_node(source_id)
     }
 
     fn insert_entry(&mut self, metadata: NodeMetadata, relative_path: PathBuf) -> Result<()> {
@@ -484,5 +600,81 @@ B
             .expect_err("duplicate id");
 
         assert!(matches!(err, MagGraphError::NodeAlreadyExists { .. }));
+    }
+
+    #[test]
+    fn search_backlinks_recall_and_quality_round_trip() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let mut index = GraphIndex::open(&root).expect("open index");
+
+        let search = index
+            .search(&QueryOptions {
+                text: Some("welcome".into()),
+                limit: 10,
+                ..Default::default()
+            })
+            .expect("search");
+        assert!(search.iter().any(|item| item.id == "welcome"));
+
+        let backlinks = index.backlinks("welcome").expect("backlinks");
+        assert!(backlinks.contains(&"getting_started".to_string()));
+
+        let bundle = index
+            .recall_bundle("welcome", "unit test", 80)
+            .expect("recall");
+        assert_eq!(bundle.id, "welcome");
+        assert!(bundle.to_markdown().contains("unit test"));
+
+        index
+            .suppress_node("getting_started", Some("duplicate"))
+            .expect("suppress");
+        let filtered = index
+            .search(&QueryOptions {
+                text: Some("Getting".into()),
+                limit: 10,
+                ..Default::default()
+            })
+            .expect("filtered search");
+        assert!(!filtered.iter().any(|item| item.id == "getting_started"));
+        index
+            .unsuppress_node("getting_started")
+            .expect("unsuppress");
+
+        index
+            .merge_nodes("welcome", "getting_started")
+            .expect("merge");
+        assert!(index.contains("welcome"));
+        assert!(!index.contains("getting_started"));
+        assert!(index
+            .read_node("welcome")
+            .expect("read")
+            .body
+            .contains("Merged from"));
+    }
+
+    #[test]
+    fn update_file_and_changed_since_refresh_one_node() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let mut index = GraphIndex::open(&root).expect("open index");
+
+        fs::write(
+            root.join("fresh.md"),
+            r#"---
+id: "fresh"
+type: "project_fact"
+tags: ["agent"]
+---
+# Fresh
+"#,
+        )
+        .expect("write fresh");
+        let updated = index.update_file("fresh.md").expect("update file");
+        assert_eq!(updated.as_deref(), Some("fresh"));
+        assert!(index.contains("fresh"));
+        assert!(!index.changed_since(0).is_empty());
     }
 }

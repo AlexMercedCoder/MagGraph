@@ -11,7 +11,9 @@ use tracing_subscriber::EnvFilter;
 
 use cmd::init::InitArgs;
 use cmd::query::QueryArgs;
+use cmd::recall::RecallArgs;
 use cmd::scaffold::ScaffoldArgs;
+use cmd::search::SearchArgs;
 use cmd::sync::SyncArgs;
 use cmd::ui::UiArgs;
 
@@ -40,6 +42,10 @@ enum Commands {
     Init(InitArgs),
     /// Traverse the graph and print a Markdown report
     Query(QueryArgs),
+    /// Search nodes by id, type, tags, links, frontmatter, body, and recency
+    Search(SearchArgs),
+    /// Print an agent-grade compact recall bundle for a node
+    Recall(RecallArgs),
     /// Git sync operations (requires [sync] in maggraph.toml)
     Sync(SyncArgs),
     /// Generate agent artifacts (MCP server, SKILL.md)
@@ -113,6 +119,8 @@ fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Some(Commands::Init(args)) => cmd::init::run(&resolved, &args),
         Some(Commands::Query(args)) => cmd::query::run(&resolved, &args),
+        Some(Commands::Search(args)) => cmd::search::run(&resolved, &args),
+        Some(Commands::Recall(args)) => cmd::recall::run(&resolved, &args),
         Some(Commands::Sync(args)) => cmd::sync::run(&resolved, &args),
         Some(Commands::Scaffold(args)) => cmd::scaffold::run(&resolved, &args),
         Some(Commands::Ui(args)) => cmd::ui::run(&resolved, &args),

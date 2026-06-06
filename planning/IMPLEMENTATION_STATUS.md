@@ -1,6 +1,6 @@
 # MagGraph — Implementation Status (PRD vs v0.1)
 
-What shipped in **v0.1.0** versus what [`PRD.md`](../PRD.md) describes long-term. Use this to set expectations for users and agents reading the PRD.
+What shipped in **v0.2.0** versus what [`PRD.md`](../PRD.md) describes long-term. Use this to set expectations for users and agents reading the PRD.
 
 **Last updated:** 2026-06-04
 
@@ -12,11 +12,12 @@ What shipped in **v0.1.0** versus what [`PRD.md`](../PRD.md) describes long-term
 |------|-------------|------------|
 | Local markdown graph | ✅ Shipped | Match |
 | Wikilinks + traversal | ✅ Shipped | Match |
+| Search, backlinks, recall bundles | ✅ Shipped | Match for agent retrieval MVP |
 | `maggraph.toml` config | ✅ Shipped | Match |
 | Git sync leader/follower | ✅ Shipped (libgit2) | Match |
 | Lakehouse semantic pointers | ✅ Shipped (read path) | Partial — see below |
 | CLI (`query`, `sync`, `scaffold`, `ui`) | ✅ Shipped | Match |
-| Python bindings | ✅ Shipped (local graph) | Partial — no lakehouse read |
+| Python bindings | ✅ Shipped, including LakehouseReader and agent retrieval APIs | Match for current local/lakehouse MVP |
 | MCP + SKILL.md | ✅ Shipped | Match |
 | Embedded UI | ✅ Shipped (localhost) | Match |
 | Security hardening | ✅ MVP review | Ongoing — see [`SECURITY.md`](./SECURITY.md) |
@@ -27,6 +28,9 @@ What shipped in **v0.1.0** versus what [`PRD.md`](../PRD.md) describes long-term
 
 - Markdown nodes with YAML frontmatter (`id`, `type`, `source`, `links`, extensions)
 - Graph index: scan, CRUD, duplicate ID detection
+- Structured search, backlinks, changed-since, one-file index refresh, recall bundles
+- Agent memory helpers for preferences, project facts, decisions, tasks, summaries, bookmarks, and tool failures
+- Memory quality operations: suppress, unsuppress, and merge
 - Directed edges from frontmatter `links` + body `[[wikilinks]]`
 - BFS/DFS traversal with Markdown reports
 - Lakehouse **URI resolution** and pluggable resolvers (file, s3, http schemes)
@@ -48,7 +52,7 @@ What shipped in **v0.1.0** versus what [`PRD.md`](../PRD.md) describes long-term
 | `s3://` fetch | Metadata + snippet stub | `T-F2` |
 | `http(s)://` fetch | Metadata stub, **no network I/O** | `T-F1` |
 | Full Parquet analytics | Metadata MVP (magic, size, snippet) | PRD long-term |
-| Python `LakehouseReader` | Not exposed | `T-F4` |
+| Python `LakehouseReader` | ✅ Exposed and tested | — |
 
 See [`LAKEHOUSE.md`](./LAKEHOUSE.md) and [`PYTHON.md`](./PYTHON.md).
 
@@ -76,8 +80,8 @@ See [`BENCHMARKS.md`](./BENCHMARKS.md).
 | Capability | v0.1 | Backlog |
 |------------|------|---------|
 | MCP read tools | ✅ Tested in smoke | — |
-| MCP CRUD tools | ✅ Generated, **under-tested** | `T-H2` |
-| UI REST CRUD | ✅ Handlers, **under-tested** | `T-H1` |
+| MCP CRUD tools | ✅ Generated and tested | — |
+| UI REST CRUD | ✅ Handlers and integration tests | — |
 | OpenAPI for UI API | Not yet | `D-10` |
 
 ---

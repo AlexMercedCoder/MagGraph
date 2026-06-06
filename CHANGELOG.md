@@ -4,6 +4,24 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-06
+
+### Added
+
+- Graph-native structured search over ids, node types, tags, frontmatter, body text, links, suppression state, and recency.
+- Incremental index helpers: `GraphIndex::update_file` and `changed_since` for fast agent memory writes and promotion flows.
+- Agent memory schema helpers for `preference`, `project_fact`, `decision`, `task`, `session_summary`, `bookmark`, and `tool_failure`.
+- Reverse-edge backlinks and incoming edge iteration.
+- Memory quality primitives: suppress, unsuppress, and merge nodes while preserving provenance.
+- Agent-grade recall bundles with summary, body excerpt, links, backlinks, metadata, relevance reason, and Markdown rendering.
+- CLI `maggraph search` and `maggraph recall` commands with Markdown and JSON output.
+- Python bindings and type stubs for search, backlinks, change feed, incremental file update, memory node creation, suppress/unsuppress, merge, and recall bundles.
+
+### Documentation
+
+- Updated README, Python guide, CLI guide, and implementation status for the new agent-facing APIs.
+- Refreshed stale Python LakehouseReader status; it is now exposed and covered by pytest.
+
 ## [0.1.0] - 2026-06-04
 
 First public release — local markdown graph, lakehouse pointers, Git sync, CLI, Python bindings, agent artifacts, and embedded UI.
@@ -27,4 +45,5 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.2.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.0
 [0.1.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.1.0

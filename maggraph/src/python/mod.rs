@@ -16,7 +16,10 @@ use crate::index::GraphIndex;
 use crate::lakehouse::{
     LakehouseReader, NodeWithContent as CoreNodeWithContent, ResolvedContent as CoreResolvedContent,
 };
+use crate::memory::{new_memory_node, validate_memory_type, MemoryNodeKind};
 use crate::node::{NewNode, Node as CoreNode, NodeMetadata};
+use crate::query::{GraphChange, QueryOptions, SearchResult};
+use crate::recall::RecallBundle;
 use crate::MagGraphConfig;
 
 pyo3::create_exception!(_maggraph, PyMagGraphError, pyo3::exceptions::PyException);
@@ -43,6 +46,21 @@ fn storage_mode_label(mode: &StorageMode) -> &'static str {
     match mode {
         StorageMode::Local => "local",
         StorageMode::Lakehouse => "lakehouse",
+    }
+}
+
+fn parse_memory_kind(kind: &str) -> PyResult<MemoryNodeKind> {
+    match kind {
+        "preference" => Ok(MemoryNodeKind::Preference),
+        "project_fact" => Ok(MemoryNodeKind::ProjectFact),
+        "decision" => Ok(MemoryNodeKind::Decision),
+        "task" => Ok(MemoryNodeKind::Task),
+        "session_summary" => Ok(MemoryNodeKind::SessionSummary),
+        "bookmark" => Ok(MemoryNodeKind::Bookmark),
+        "tool_failure" => Ok(MemoryNodeKind::ToolFailure),
+        other => Err(PyValueError::new_err(format!(
+            "unknown memory kind {other:?}; expected one of preference, project_fact, decision, task, session_summary, bookmark, tool_failure"
+        ))),
     }
 }
 
@@ -110,6 +128,50 @@ fn metadata_to_dict<'py>(py: Python<'py>, metadata: &NodeMetadata) -> PyResult<B
     for (key, value) in &metadata.extra {
         dict.set_item(key, yaml_value_to_py(py, value)?)?;
     }
+    Ok(dict)
+}
+
+fn search_result_to_dict<'py>(
+    py: Python<'py>,
+    item: &SearchResult,
+) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("id", &item.id)?;
+    dict.set_item("type", &item.node_type)?;
+    dict.set_item("relative_path", &item.relative_path)?;
+    dict.set_item("score", item.score)?;
+    dict.set_item("matched", &item.matched)?;
+    dict.set_item("summary", &item.summary)?;
+    dict.set_item("modified_unix", item.modified_unix)?;
+    Ok(dict)
+}
+
+fn graph_change_to_dict<'py>(py: Python<'py>, item: &GraphChange) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("id", &item.id)?;
+    dict.set_item("relative_path", &item.relative_path)?;
+    dict.set_item("modified_unix", item.modified_unix)?;
+    Ok(dict)
+}
+
+fn recall_bundle_to_dict<'py>(
+    py: Python<'py>,
+    item: &RecallBundle,
+) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("id", &item.id)?;
+    dict.set_item("type", &item.node_type)?;
+    dict.set_item("summary", &item.summary)?;
+    dict.set_item("body_excerpt", &item.body_excerpt)?;
+    dict.set_item("links", &item.links)?;
+    dict.set_item("backlinks", &item.backlinks)?;
+    dict.set_item("relevance_reason", &item.relevance_reason)?;
+    let metadata = PyDict::new(py);
+    for (key, value) in &item.metadata {
+        metadata.set_item(key, yaml_value_to_py(py, value)?)?;
+    }
+    dict.set_item("metadata", metadata)?;
+    dict.set_item("markdown", item.to_markdown())?;
     Ok(dict)
 }
 
@@ -460,6 +522,54 @@ impl PyGraphIndex {
         })
     }
 
+    #[pyo3(signature = (query="", node_type=None, tags=None, include_suppressed=false, limit=50, modified_since_unix=None))]
+    fn search(
+        &self,
+        py: Python<'_>,
+        query: &str,
+        node_type: Option<String>,
+        tags: Option<Vec<String>>,
+        include_suppressed: bool,
+        limit: usize,
+        modified_since_unix: Option<i64>,
+    ) -> PyResult<Vec<Py<PyAny>>> {
+        let options = QueryOptions {
+            text: if query.is_empty() {
+                None
+            } else {
+                Some(query.to_string())
+            },
+            node_type,
+            tags: tags.unwrap_or_default(),
+            include_suppressed,
+            limit,
+            modified_since_unix,
+        };
+        self.inner
+            .search(&options)
+            .map_err(map_err)?
+            .iter()
+            .map(|item| Ok(search_result_to_dict(py, item)?.into()))
+            .collect()
+    }
+
+    fn backlinks(&self, node_id: &str) -> PyResult<Vec<String>> {
+        self.inner.backlinks(node_id).map_err(map_err)
+    }
+
+    #[pyo3(signature = (since_unix))]
+    fn changed_since(&self, py: Python<'_>, since_unix: i64) -> PyResult<Vec<Py<PyAny>>> {
+        self.inner
+            .changed_since(since_unix)
+            .iter()
+            .map(|item| Ok(graph_change_to_dict(py, item)?.into()))
+            .collect()
+    }
+
+    fn update_file(&mut self, path: &str) -> PyResult<Option<String>> {
+        self.inner.update_file(path).map_err(map_err)
+    }
+
     #[pyo3(signature = (node_id, node_type="note", body="", links=None))]
     fn create_node(
         &mut self,
@@ -485,6 +595,31 @@ impl PyGraphIndex {
         })
     }
 
+    #[pyo3(signature = (node_id, kind, body="", links=None))]
+    fn create_memory_node(
+        &mut self,
+        node_id: &str,
+        kind: &str,
+        body: &str,
+        links: Option<Vec<String>>,
+    ) -> PyResult<PyNode> {
+        if !validate_memory_type(kind) {
+            return Err(PyValueError::new_err(format!(
+                "unsupported memory kind: {kind}"
+            )));
+        }
+        let new_node = new_memory_node(
+            node_id,
+            parse_memory_kind(kind)?,
+            body,
+            links.unwrap_or_default(),
+            Default::default(),
+        );
+        Ok(PyNode {
+            inner: self.inner.create_node(new_node).map_err(map_err)?,
+        })
+    }
+
     fn update_node(&mut self, node_id: &str, body: &str) -> PyResult<()> {
         let mut node = self.inner.read_node(node_id).map_err(map_err)?;
         node.body = body.to_string();
@@ -495,6 +630,36 @@ impl PyGraphIndex {
     fn delete_node(&mut self, node_id: &str) -> PyResult<()> {
         self.inner.delete_node(node_id).map_err(map_err)?;
         Ok(())
+    }
+
+    #[pyo3(signature = (node_id, reason=None))]
+    fn suppress_node(&mut self, node_id: &str, reason: Option<&str>) -> PyResult<()> {
+        self.inner.suppress_node(node_id, reason).map_err(map_err)
+    }
+
+    fn unsuppress_node(&mut self, node_id: &str) -> PyResult<()> {
+        self.inner.unsuppress_node(node_id).map_err(map_err)
+    }
+
+    fn merge_nodes(&mut self, target_id: &str, source_id: &str) -> PyResult<()> {
+        self.inner
+            .merge_nodes(target_id, source_id)
+            .map_err(map_err)
+    }
+
+    #[pyo3(signature = (node_id, reason="", body_chars=1200))]
+    fn recall_bundle(
+        &self,
+        py: Python<'_>,
+        node_id: &str,
+        reason: &str,
+        body_chars: usize,
+    ) -> PyResult<Py<PyAny>> {
+        let bundle = self
+            .inner
+            .recall_bundle(node_id, reason, body_chars)
+            .map_err(map_err)?;
+        Ok(recall_bundle_to_dict(py, &bundle)?.into())
     }
 
     fn read_node_async<'py>(

@@ -33,6 +33,7 @@ cd python && maturin develop --features python-ext
 | `config_path` | Path to the loaded TOML file |
 | `storage_mode` | `"local"` or `"lakehouse"` |
 | `open_index()` | Open a `GraphIndex` at `root_path` |
+| `open_lakehouse_reader()` | Open a `LakehouseReader` for local or lakehouse content |
 
 ### `GraphIndex`
 
@@ -40,6 +41,14 @@ cd python && maturin develop --features python-ext
 |--------|-------------|
 | `list_nodes()` | Sorted node ids |
 | `read_node(id)` | Full node (metadata + body) |
+| `search(query="", node_type=None, tags=None, include_suppressed=False, limit=50, modified_since_unix=None)` | Structured search over ids, types, tags, frontmatter, links, body, and recency |
+| `backlinks(id)` | Node ids that link to `id` |
+| `changed_since(unix)` | Files modified after a Unix timestamp |
+| `update_file(path)` | Refresh one changed Markdown file in the index |
+| `create_memory_node(id, kind, body="", links=None)` | Create a typed agent memory node |
+| `suppress_node(id, reason=None)` / `unsuppress_node(id)` | Mark/unmark stale or duplicate memory |
+| `merge_nodes(target, source)` | Merge a duplicate node into a canonical node |
+| `recall_bundle(id, reason="", body_chars=1200)` | Compact agent retrieval bundle as a dict with Markdown |
 | `traverse(from_id, depth=2, order="bfs")` | BFS/DFS traversal |
 | `read_node_async(id)` | Async wrapper (non-blocking) |
 | `traverse_async(...)` | Async traversal |
@@ -104,24 +113,35 @@ index.update_node("new_id", "# Updated\n")
 index.delete_node("new_id")
 ```
 
-## Lakehouse mode (Rust-only today)
+## Agent memory helpers
 
-Python bindings expose `storage_mode` from config (`"local"` or `"lakehouse"`) but **do not** wrap `LakehouseReader` or external content resolution. Agents needing resolved lakehouse content should use the Rust API or CLI until bindings land.
+```python
+index.create_memory_node("prefers_cli", "preference", "User prefers CLI-first UX.")
+index.suppress_node("old_fact", reason="superseded")
+index.merge_nodes("canonical_fact", "duplicate_fact")
+bundle = index.recall_bundle("canonical_fact", reason="matched search")
+print(bundle["markdown"])
+```
+
+Memory kinds: `preference`, `project_fact`, `decision`, `task`,
+`session_summary`, `bookmark`, `tool_failure`.
+
+## Lakehouse mode
+
+Python bindings expose `LakehouseReader` and external content resolution.
 
 | Capability | Python | Rust |
 |------------|--------|------|
 | Index / traverse local nodes | ✅ | ✅ |
 | Read node body from disk | ✅ | ✅ |
-| Resolve `source` / `source_uri` externally | ❌ | ✅ |
-| Cache + file allowlist | ❌ | ✅ |
-
-Backlog: `T-M4` (pytest when exposed), `T-F4` (expose `LakehouseReader`).
+| Resolve `source` / `source_uri` externally | ✅ | ✅ |
+| Cache + file allowlist | ✅ | ✅ |
 
 ## Testing & backlog
 
 | Coverage today | Gap (backlog ID) |
 |----------------|------------------|
-| Config, index, traverse, async, CRUD (local) | `T-M4` — no lakehouse pytest |
-| MCP scaffold smoke | `T-F4` — lakehouse read not in Python API |
+| Config, index, traverse, async, CRUD, lakehouse reader, search/recall, memory quality | Coverage should expand as new agent workflows adopt the APIs |
+| MCP scaffold smoke and CRUD | Keep generated server tests aligned with scaffold changes |
 
 See [`TESTING.md`](./TESTING.md), [`BACKLOG.md`](./BACKLOG.md), [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).

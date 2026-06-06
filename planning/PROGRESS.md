@@ -1,6 +1,6 @@
 # MagGraph — Implementation Progress
 
-**Last updated:** 2026-06-04 (post-v0.1 audit backlog)  
+**Last updated:** 2026-06-06 (v0.2.0 agent retrieval release)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)  
 **Open work:** [`BACKLOG.md`](./BACKLOG.md) · **Testing:** [`TESTING.md`](./TESTING.md)
 
@@ -25,6 +25,10 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 | 10 | Hardening & release | ✅ Complete | Security, e2e tests, benchmarks, CHANGELOG, release workflow |
 
 **v0.1.0** — all planned phases complete.
+
+**v0.2.0** — agent retrieval and memory-quality release: structured search,
+backlinks, incremental index refresh, changed-since, typed memory helpers,
+suppress/merge primitives, recall bundles, Python bindings, and CLI search/recall.
 
 ### Post-v0.1 backlog (v0.1.1+)
 
@@ -204,3 +208,4 @@ Phases 0–10 are done. Remaining work from the [v0.1 audit](./BACKLOG.md) is tr
 | 2026-06-04 | Phase 9: `maggraph ui` Axum server, REST API, embedded dashboard, loopback bind, `planning/UI.md`, integration tests |
 | 2026-06-04 | Phase 10: security hardening, e2e tests, traversal bench, CHANGELOG/LICENSE, release workflow; Phase 0 cleanup complete — **v0.1.0** |
 | 2026-06-04 | Post-v0.1 audit: added `TESTING.md`, `BACKLOG.md`, `IMPLEMENTATION_STATUS.md`; updated planning index and feature doc cross-links |
+| 2026-06-06 | v0.2.0: added structured search, backlinks, incremental update/change feed, memory helpers, suppress/merge, recall bundles, CLI search/recall, and Python bindings |

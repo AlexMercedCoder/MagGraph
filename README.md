@@ -38,12 +38,15 @@ immediately consumable by any agent framework.
 - [Python API](#python-api)
   - [Config & index](#config--index)
   - [Reading nodes](#reading-nodes)
+  - [Search, backlinks, and recall](#search-backlinks-and-recall)
   - [Traversal](#traversal)
   - [CRUD](#crud)
   - [Async support](#async-support)
   - [LakehouseReader](#lakehousereader)
 - [CLI](#cli)
   - [query](#query)
+  - [search](#search)
+  - [recall](#recall)
   - [init](#init)
   - [scaffold](#scaffold)
   - [ui](#ui)
@@ -289,6 +292,45 @@ print(report)
 > your LLM call. The report is structured for readability by both humans and
 > language models.
 
+### Search, backlinks, and recall
+
+MagGraph can return compact, agent-friendly retrieval packets without requiring
+an external vector database:
+
+```python
+# Search ids, types, body, links, frontmatter, tags, and recency.
+results = index.search("release checklist", node_type="project_fact", limit=5)
+for item in results:
+    print(item["id"], item["score"], item["matched"])
+
+# Reverse edges: who links to this node?
+print(index.backlinks("release_process"))
+
+# Incremental change feed for fast memory refresh.
+changed = index.changed_since(1_717_200_000)
+
+# Refresh one changed file without a full rescan.
+index.update_file("release_process.md")
+
+# Agent-grade recall bundle with summary, excerpt, links, backlinks, metadata,
+# relevance reason, and Markdown rendering.
+bundle = index.recall_bundle("release_process", reason="matched release query")
+print(bundle["markdown"])
+```
+
+For common agent memory records, use typed helpers:
+
+```python
+index.create_memory_node(
+    "prefers_cli",
+    "preference",
+    "User prefers CLI-first workflows over config-file editing.",
+)
+```
+
+Supported memory kinds: `preference`, `project_fact`, `decision`, `task`,
+`session_summary`, `bookmark`, and `tool_failure`.
+
 ### CRUD
 
 ```python
@@ -305,6 +347,11 @@ index.update_node("sprint_retro_june", "# Sprint Retro — June 2026\n\nRevised 
 
 # Delete
 index.delete_node("sprint_retro_june")
+
+# Quality operations for agent memory maintenance
+index.suppress_node("stale_fact", reason="superseded")
+index.unsuppress_node("stale_fact")
+index.merge_nodes("canonical_release_process", "duplicate_release_note")
 
 # Error handling
 try:
@@ -414,6 +461,39 @@ maggraph query \
 | `--from` | required | Start node id |
 | `--depth` | `2` | Max traversal hops (start node = depth 0) |
 | `--order` | `bfs` | `bfs` (breadth-first) or `dfs` (depth-first) |
+
+### search
+
+Search nodes and print Markdown or JSON:
+
+```bash
+maggraph search "release checklist" \
+  --node-type project_fact \
+  --tag magagent \
+  --limit 10 \
+  --format markdown
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| positional query | `""` | Text searched across ids, types, links, frontmatter, and body |
+| `--node-type` | none | Filter by type |
+| `--tag` | repeatable | Require one or more tags |
+| `--include-suppressed` | false | Include nodes with `suppressed: true` |
+| `--modified-since-unix` | none | Recency filter |
+| `--format` | `markdown` | `markdown` or `json` |
+
+### recall
+
+Render a compact agent retrieval bundle:
+
+```bash
+maggraph recall release_process \
+  --reason "matched release query" \
+  --body-chars 1200
+```
+
+Use `--format json` for programmatic consumers.
 
 ### init
 

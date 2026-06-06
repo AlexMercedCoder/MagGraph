@@ -27,6 +27,29 @@ maggraph query --from welcome --depth 2 --order bfs \
 | `--order` | `bfs` | `bfs` or `dfs` |
 | `--format` | `markdown` | Only `markdown` supported |
 
+### `maggraph search`
+
+Search node ids, types, tags, frontmatter, body, links, and recency.
+
+```bash
+maggraph search "release checklist" \
+  --node-type project_fact \
+  --tag magagent \
+  --limit 10 \
+  --format markdown
+```
+
+Use `--format json` for programmatic agent consumers.
+
+### `maggraph recall`
+
+Print a compact retrieval bundle with summary, excerpt, links, backlinks,
+metadata, and relevance reason.
+
+```bash
+maggraph recall release_process --reason "matched release query"
+```
+
 ### `maggraph scaffold`
 
 Generate agent-facing artifacts from the indexed graph.
@@ -74,9 +97,8 @@ maggraph complete zsh  >> ~/.zfunc/_maggraph
 
 | Coverage today | Gap (backlog ID) |
 |----------------|------------------|
-| Golden `query` (BFS), scaffold smoke, e2e init/query/scaffold | `T-M1` — no DFS golden snapshot |
-| Leader `init --git` in e2e | `T-M2` — `init --skill`, follower `sync init` untested |
-| Sync engine unit tests | `T-H4` — follower write rejection at CLI; `T-M3` — conflict paths on `sync pull` |
-| — | `T-H3` — `maggraph complete` non-empty output smoke test |
+| Golden `query` (BFS/DFS), `search`, `recall`, scaffold smoke, e2e init/query/scaffold | Add cases as command formats expand |
+| Leader `init --git`, follower `sync init`, follower write rejection, conflict paths | Keep sync e2e coverage current |
+| Shell completion smoke | Covered for bash, zsh, fish, elvish, powershell |
 
 See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).

@@ -14,6 +14,7 @@ use crate::wikilink::extract_wikilink_targets;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GraphAdjacency {
     outgoing: HashMap<String, Vec<String>>,
+    incoming: HashMap<String, Vec<String>>,
     /// Wikilink targets that could not be resolved to a node id (per source node).
     unresolved: HashMap<String, Vec<String>>,
 }
@@ -38,8 +39,23 @@ impl GraphAdjacency {
             }
         }
 
+        let mut incoming: HashMap<String, Vec<String>> = HashMap::new();
+        for (from, targets) in &outgoing {
+            for target in targets {
+                incoming
+                    .entry(target.clone())
+                    .or_default()
+                    .push(from.clone());
+            }
+        }
+        for targets in incoming.values_mut() {
+            targets.sort();
+            targets.dedup();
+        }
+
         Ok(Self {
             outgoing,
+            incoming,
             unresolved,
         })
     }
@@ -51,6 +67,11 @@ impl GraphAdjacency {
 
     pub fn unresolved_targets(&self, id: &str) -> &[String] {
         self.unresolved.get(id).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    /// Incoming neighbor node ids for `id` (empty if unknown or no backlinks).
+    pub fn backlinks(&self, id: &str) -> &[String] {
+        self.incoming.get(id).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
     pub fn has_node(&self, id: &str) -> bool {
@@ -71,6 +92,13 @@ impl GraphAdjacency {
                 .iter()
                 .map(move |target| (from.as_str(), target.as_str()))
         })
+    }
+
+    /// All resolved incoming edges as `(from_id, to_id)` pairs.
+    pub fn incoming_edges(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.incoming
+            .iter()
+            .flat_map(|(to, sources)| sources.iter().map(move |from| (from.as_str(), to.as_str())))
     }
 }
 

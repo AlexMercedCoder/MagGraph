@@ -65,7 +65,7 @@ async def test_traverse_async_does_not_block_event_loop() -> None:
     await asyncio.sleep(0)
     assert not task.done()
 
-    result = await index.traverse_async("welcome", depth=2, order="bfs")
+    result = await asyncio.wait_for(index.traverse_async("welcome", depth=2, order="bfs"), timeout=5)
     tick.set()
     await task
 
@@ -75,7 +75,7 @@ async def test_traverse_async_does_not_block_event_loop() -> None:
 @pytest.mark.asyncio
 async def test_read_node_async() -> None:
     index = maggraph.open_index(str(BASIC_GRAPH))
-    node = await index.read_node_async("welcome")
+    node = await asyncio.wait_for(index.read_node_async("welcome"), timeout=5)
     assert node.id == "welcome"
 
 
@@ -100,6 +100,55 @@ def test_crud_round_trip(tmp_path: Path) -> None:
 
     index.delete_node("agent_test")
     assert "agent_test" not in index.list_nodes()
+
+
+def test_search_backlinks_recall_and_quality_primitives(tmp_path: Path) -> None:
+    import shutil
+
+    graph = tmp_path / "graph"
+    shutil.copytree(BASIC_GRAPH, graph)
+    index = maggraph.open_index(str(graph))
+
+    memory_node = index.create_memory_node("prefers_cli", "preference", "User prefers CLI workflows.")
+    assert memory_node.node_type == "preference"
+
+    results = index.search("Welcome")
+    assert any(item["id"] == "welcome" for item in results)
+    assert "getting_started" in index.backlinks("welcome")
+
+    bundle = index.recall_bundle("welcome", reason="pytest", body_chars=80)
+    assert bundle["id"] == "welcome"
+    assert "pytest" in bundle["markdown"]
+    assert "backlinks" in bundle
+
+    index.suppress_node("getting_started", reason="duplicate")
+    filtered = index.search("Getting")
+    assert not any(item["id"] == "getting_started" for item in filtered)
+    index.unsuppress_node("getting_started")
+    assert any(item["id"] == "getting_started" for item in index.search("Getting"))
+
+    index.merge_nodes("welcome", "getting_started")
+    assert "getting_started" not in index.list_nodes()
+    assert "Merged from" in index.read_node("welcome").body
+
+
+def test_update_file_and_changed_since(tmp_path: Path) -> None:
+    import shutil
+
+    graph = tmp_path / "graph"
+    shutil.copytree(BASIC_GRAPH, graph)
+    index = maggraph.open_index(str(graph))
+    (graph / "fresh.md").write_text(
+        '---\nid: "fresh"\ntype: "project_fact"\ntags: ["agent"]\n---\n# Fresh\n',
+        encoding="utf-8",
+    )
+
+    assert index.update_file("fresh.md") == "fresh"
+    assert "fresh" in index.list_nodes()
+    changes = index.changed_since(0)
+    assert any(item["id"] == "fresh" for item in changes)
+    tagged = index.search("", tags=["agent"])
+    assert any(item["id"] == "fresh" for item in tagged)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -260,9 +309,7 @@ async def test_lakehouse_reader_async(tmp_path: Path) -> None:
     index = config.open_index()
     reader = config.open_lakehouse_reader()
 
-    result = await reader.read_node_async(index, "note")
+    result = await asyncio.wait_for(reader.read_node_async(index, "note"), timeout=5)
 
     assert result.node.id == "note"
     assert result.content.kind == "local"
-
-

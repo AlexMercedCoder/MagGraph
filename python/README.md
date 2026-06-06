@@ -53,13 +53,22 @@ print(index.list_nodes())          # ['getting_started', 'welcome', ...]
 node = index.read_node("welcome")
 print(node.body)                   # full markdown body
 
+# Search, backlinks, and recall
+print(index.search("Welcome")[0]["id"])
+print(index.backlinks("welcome"))
+bundle = index.recall_bundle("welcome", reason="quick start")
+print(bundle["markdown"])
+
 # BFS traversal
 result = index.traverse("welcome", depth=2, order="bfs")
 print(result.to_markdown(index))   # formatted traversal report
 
-# CRUD
+# CRUD and memory helpers
+index.create_memory_node("prefers_cli", "preference", "User prefers CLI-first UX.")
 index.create_node("new_note", node_type="note", body="# Hi\n", links=["welcome"])
 index.update_node("new_note", "# Updated\n")
+index.suppress_node("new_note", reason="example")
+index.unsuppress_node("new_note")
 index.delete_node("new_note")
 ```
 
@@ -158,12 +167,20 @@ maggraph sync pull
 | `ResolvedConfig.open_lakehouse_reader()` | Create a `LakehouseReader` |
 | `GraphIndex.list_nodes()` | All node ids (sorted) |
 | `GraphIndex.read_node(id)` | `Node` with metadata + body |
+| `GraphIndex.search(...)` | Structured search over ids, types, tags, frontmatter, links, body, and recency |
+| `GraphIndex.backlinks(id)` | Node ids that link to `id` |
+| `GraphIndex.changed_since(unix)` | Files modified after a Unix timestamp |
+| `GraphIndex.update_file(path)` | Refresh one changed markdown file in the index |
+| `GraphIndex.recall_bundle(id, ...)` | Compact agent retrieval dict with Markdown |
 | `GraphIndex.read_node_async(id)` | Async version |
 | `GraphIndex.traverse(id, depth, order)` | BFS/DFS → `TraversalResult` |
 | `GraphIndex.traverse_async(...)` | Async version |
 | `GraphIndex.create_node(...)` | Write new node to disk + index |
+| `GraphIndex.create_memory_node(...)` | Create typed memory nodes (`preference`, `project_fact`, `decision`, `task`, `session_summary`, `bookmark`, `tool_failure`) |
 | `GraphIndex.update_node(id, body)` | Update body on disk |
 | `GraphIndex.delete_node(id)` | Delete node from disk + index |
+| `GraphIndex.suppress_node(id)` / `unsuppress_node(id)` | Mark/unmark stale or duplicate nodes |
+| `GraphIndex.merge_nodes(target, source)` | Merge duplicate source into canonical target |
 | `GraphIndex.read_node_with_content(reader, id)` | Resolve external content |
 | `LakehouseReader.read_node(index, id)` | → `NodeWithContent` |
 | `LakehouseReader.read_node_async(index, id)` | Async version |

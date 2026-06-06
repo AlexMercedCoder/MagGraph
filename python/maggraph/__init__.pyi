@@ -1,4 +1,29 @@
-from typing import Awaitable, Literal, Optional
+from typing import Awaitable, Literal, Optional, TypedDict
+
+class SearchResult(TypedDict):
+    id: str
+    type: str
+    relative_path: str
+    score: int
+    matched: list[str]
+    summary: str
+    modified_unix: Optional[int]
+
+class GraphChange(TypedDict):
+    id: str
+    relative_path: str
+    modified_unix: int
+
+class RecallBundle(TypedDict):
+    id: str
+    type: str
+    summary: str
+    body_excerpt: str
+    links: list[str]
+    backlinks: list[str]
+    metadata: dict[str, object]
+    relevance_reason: str
+    markdown: str
 
 class MagGraphError(Exception): ...
 
@@ -20,6 +45,18 @@ class GraphIndex:
     def __len__(self) -> int: ...
     def list_nodes(self) -> list[str]: ...
     def read_node(self, node_id: str) -> Node: ...
+    def search(
+        self,
+        query: str = "",
+        node_type: str | None = None,
+        tags: list[str] | None = None,
+        include_suppressed: bool = False,
+        limit: int = 50,
+        modified_since_unix: int | None = None,
+    ) -> list[SearchResult]: ...
+    def backlinks(self, node_id: str) -> list[str]: ...
+    def changed_since(self, since_unix: int) -> list[GraphChange]: ...
+    def update_file(self, path: str) -> Optional[str]: ...
     def read_node_async(self, node_id: str) -> Awaitable[Node]: ...
     def create_node(
         self,
@@ -28,8 +65,29 @@ class GraphIndex:
         body: str = "",
         links: list[str] | None = None,
     ) -> Node: ...
+    def create_memory_node(
+        self,
+        node_id: str,
+        kind: Literal[
+            "preference",
+            "project_fact",
+            "decision",
+            "task",
+            "session_summary",
+            "bookmark",
+            "tool_failure",
+        ],
+        body: str = "",
+        links: list[str] | None = None,
+    ) -> Node: ...
     def update_node(self, node_id: str, body: str) -> None: ...
     def delete_node(self, node_id: str) -> None: ...
+    def suppress_node(self, node_id: str, reason: str | None = None) -> None: ...
+    def unsuppress_node(self, node_id: str) -> None: ...
+    def merge_nodes(self, target_id: str, source_id: str) -> None: ...
+    def recall_bundle(
+        self, node_id: str, reason: str = "", body_chars: int = 1200
+    ) -> RecallBundle: ...
     def traverse(
         self,
         from_id: str,

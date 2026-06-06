@@ -41,7 +41,28 @@ fn help_lists_query_and_scaffold() {
         .assert()
         .success()
         .stdout(predicate::str::contains("query"))
+        .stdout(predicate::str::contains("search"))
+        .stdout(predicate::str::contains("recall"))
         .stdout(predicate::str::contains("scaffold"));
+}
+
+#[test]
+fn search_finds_node_body_and_json_output() {
+    maggraph_cmd()
+        .args(["search", "Welcome", "--format", "json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"id\": \"welcome\""));
+}
+
+#[test]
+fn recall_prints_agent_bundle() {
+    maggraph_cmd()
+        .args(["recall", "welcome", "--reason", "test"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Reason"))
+        .stdout(predicate::str::contains("Backlinks"));
 }
 
 // T-M1: DFS golden snapshot
