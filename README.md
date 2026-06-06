@@ -1,3 +1,9 @@
+<div align="center">
+
+<img src="docs/assets/brand/maggraph-logo.png" alt="MagGraph logo" width="220">
+
+</div>
+
 # MagGraph
 
 > **Why "MagGraph"?** The name is short for **Magpie** — a Corvid.
