@@ -62,15 +62,20 @@ jobs:
       # T-L3: Run bench and fail if per_traversal_us exceeds 1000 µs (1 ms gate).
       - name: Run traversal benchmark
         run: |
+          set -euo pipefail
+          mkdir -p target
           cargo bench -p maggraph --bench traversal 2>&1 | tee target/benchmark.txt
-          if grep -q "per_traversal_us:" target/benchmark.txt; then
-            us=$(grep "per_traversal_us:" target/benchmark.txt | awk '{print $2}' | cut -d. -f1)
-            if [ "$us" -ge 1000 ]; then
-              echo "BENCH REGRESSION: per_traversal_us=${us} exceeds 1000 µs gate" >&2
-              exit 1
-            fi
-            echo "Benchmark OK: ${us} µs/traversal"
+          raw_us=$(awk '/per_traversal_us:/ { print $2 }' target/benchmark.txt | tail -n 1)
+          us=$(printf '%s\n' "$raw_us" | awk '{ split($1, n, "."); print n[1] }')
+          if [ -z "$us" ]; then
+            echo "BENCH ERROR: missing per_traversal_us in benchmark output" >&2
+            exit 1
           fi
+          if [ "$us" -ge 1000 ]; then
+            echo "BENCH REGRESSION: per_traversal_us=${us} exceeds 1000 µs gate" >&2
+            exit 1
+          fi
+          echo "Benchmark OK: ${raw_us} µs/traversal"
 
       - name: Upload benchmark output
         uses: actions/upload-artifact@v4
@@ -115,7 +120,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install maturin pytest pytest-asyncio fastmcp
-          .venv/bin/maturin build --release --features python-ext
+          .venv/bin/maturin build --release --features python-ext --out dist
 
       - name: Build maggraph CLI (for scaffold smoke test)
         run: cargo build -p maggraph-cli
@@ -131,7 +136,7 @@ jobs:
         working-directory: python
         run: |
           python -m venv .smoke-venv
-          .smoke-venv/bin/pip install --find-links target/wheels --no-index maggraph
+          .smoke-venv/bin/pip install --find-links dist --no-index maggraph
           .smoke-venv/bin/python -c "
           import maggraph, pathlib
           print('maggraph version:', maggraph.__version__)
@@ -152,7 +157,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: maggraph-wheel
-          path: python/target/wheels/*.whl
+          path: python/dist/*.whl
           if-no-files-found: error
 
   docs:
@@ -169,7 +174,7 @@ jobs:
       # D-9: Build Rust API docs and treat warnings as errors.
       - name: Build Rust API docs
         run: |
-          RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --features maggraph/ui
+          RUSTDOCFLAGS="-D warnings" cargo doc -p maggraph --no-deps --features ui
 
       - name: Upload API docs
         uses: actions/upload-artifact@v4
