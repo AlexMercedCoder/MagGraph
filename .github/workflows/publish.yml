@@ -65,7 +65,6 @@ jobs:
           args: >-
             --release
             --features python-ext
-            --manifest-path maggraph/Cargo.toml
             --out dist
           working-directory: python
 
@@ -78,7 +77,6 @@ jobs:
           args: >-
             --release
             --features python-ext
-            --manifest-path maggraph/Cargo.toml
             --out dist
           working-directory: python
 
