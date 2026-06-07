@@ -92,7 +92,7 @@ jobs:
 
       # Smoke test: install from the built wheel in a clean venv and import.
       - name: Smoke test wheel
-        if: matrix.platform.target != 'aarch64-unknown-linux-gnu'
+        if: matrix.platform.target != 'aarch64-unknown-linux-gnu' && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         working-directory: python
         run: |

@@ -4,6 +4,12 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-06-07
+
+### Fixed
+
+- Skipped the Intel macOS wheel smoke test when it is cross-built on Apple Silicon runners; native Linux, Apple Silicon macOS, and Windows wheels still install-smoke before publish.
+
 ## [0.2.4] - 2026-06-07
 
 ### Fixed
@@ -72,6 +78,7 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.2.5]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.5
 [0.2.4]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.4
 [0.2.3]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.3
 [0.2.2]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.2
