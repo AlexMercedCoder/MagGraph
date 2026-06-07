@@ -30,20 +30,25 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             manylinux: manylinux_2_28
+            rustflags: ""
           - runner: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             manylinux: manylinux_2_28
+            rustflags: ""
           # macOS (Intel + Apple Silicon)
           - runner: macos-13
             target: x86_64-apple-darwin
             manylinux: ""
+            rustflags: ""
           - runner: macos-14
             target: aarch64-apple-darwin
             manylinux: ""
+            rustflags: ""
           # Windows
-          - runner: windows-latest
+          - runner: windows-2022
             target: x86_64-pc-windows-msvc
             manylinux: ""
+            rustflags: "-C link-arg=Advapi32.lib"
 
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +59,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Configure Rust flags
+        if: matrix.platform.rustflags != ''
+        shell: bash
+        run: echo "RUSTFLAGS=${{ matrix.platform.rustflags }}" >> "$GITHUB_ENV"
 
       # Linux builds use the maturin-action container (includes libgit2, etc.)
       - name: Build wheel (Linux manylinux)
@@ -89,10 +99,14 @@ jobs:
           python -m venv .smoke-venv
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             .smoke-venv/Scripts/pip install --find-links dist --no-index maggraph
-            .smoke-venv/Scripts/python -c "import maggraph; print('version:', maggraph.__version__)"
+            smoke_python="$PWD/.smoke-venv/Scripts/python"
+            cd "$(mktemp -d)"
+            "$smoke_python" -c "import maggraph; print('version:', maggraph.__version__)"
           else
             .smoke-venv/bin/pip install --find-links dist --no-index maggraph
-            .smoke-venv/bin/python -c "import maggraph; print('version:', maggraph.__version__)"
+            smoke_python="$PWD/.smoke-venv/bin/python"
+            cd "$(mktemp -d)"
+            "$smoke_python" -c "import maggraph; print('version:', maggraph.__version__)"
           fi
 
       - name: Upload wheel artifact
