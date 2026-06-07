@@ -839,7 +839,7 @@ checksum = "113b30b4cd05f7c06868fdb2854f66a7b9fece9a48425351cd532e810d74024f"
 
 [[package]]
 name = "maggraph"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "axum",
  "chrono",
@@ -862,7 +862,7 @@ dependencies = [
 
 [[package]]
 name = "maggraph-cli"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "assert_cmd",
  "axum",
