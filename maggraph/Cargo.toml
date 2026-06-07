@@ -13,7 +13,7 @@ name = "maggraph"
 [features]
 default = []
 python = ["dep:pyo3", "dep:pyo3-async-runtimes", "dep:tokio"]
-python-ext = ["python", "pyo3/extension-module"]
+python-ext = ["python", "pyo3/extension-module", "pyo3/abi3-py39"]
 ui = [
     "dep:axum",
     "dep:tower",

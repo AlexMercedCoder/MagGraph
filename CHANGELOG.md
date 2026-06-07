@@ -4,6 +4,12 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-06-07
+
+### Fixed
+
+- Enabled PyO3 `abi3-py39` wheels so one published wheel supports Python 3.9 through Python 3.14 without requiring users to build from source.
+
 ## [0.2.1] - 2026-06-07
 
 ### Fixed
@@ -53,6 +59,7 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.2.2]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.2
 [0.2.1]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.1
 [0.2.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.0
 [0.1.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.1.0
