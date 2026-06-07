@@ -3,7 +3,7 @@ members = ["maggraph", "maggraph-cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AlexMercedCoder/MagGraph"
@@ -26,8 +26,8 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["trace"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
 serde_json = "1.0"
-pyo3 = "0.23"
-pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
+pyo3 = "0.27"
+pyo3-async-runtimes = { version = "0.27", features = ["tokio-runtime"] }
 tempfile = "3.14"
 assert_cmd = "2.0"
 predicates = "3.1"
