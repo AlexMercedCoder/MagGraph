@@ -26,9 +26,20 @@ immediately consumable by any agent framework.
 
 ---
 
+## Mag Ecosystem
+
+MagGraph is part of a local-first AI productivity stack:
+
+- [MagGraph](https://github.com/AlexMercedCoder/MagGraph) — Rust-powered Markdown graph memory, search, backlinks, recall bundles, and Python bindings.
+- [MagAgent](https://github.com/AlexMercedCoder/MagAgent) — terminal-native AI coding and productivity agent powered by MagGraph memory.
+- [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) — cross-platform desktop app for MagAgent projects, chat, configuration, memory, plugins, and local workbench views.
+
+---
+
 ## Table of Contents
 
 - [Why MagGraph?](#why-maggraph)
+- [Mag Ecosystem](#mag-ecosystem)
 - [Install](#install)
 - [Quickstart — Python](#quickstart--python)
 - [Core concepts](#core-concepts)
