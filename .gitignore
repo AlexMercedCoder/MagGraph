@@ -7,3 +7,18 @@ python/**/*.so
 python/**/*.pyd
 *.egg-info/
 dist/
+
+# Local environments and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cert
+secrets.*
+credentials.*
+*.secret
+*.secrets
