@@ -23,14 +23,11 @@ Regenerate after adding nodes or changing edge patterns so tool docs stay in syn
 
 ## Install dependencies
 
-`maggraph` is not published to PyPI yet. Install from the repo, then FastMCP:
+Install the published Python package and FastMCP in an isolated environment:
 
 ```bash
-cd /path/to/MagGraph/python
 python -m venv .venv && source .venv/bin/activate
-pip install maturin
-maturin develop --release --features python-ext
-
+python -m pip install "maggraph>=0.4.0"
 pip install -r /path/to/your/graph/mcp_server/requirements.txt
 ```
 

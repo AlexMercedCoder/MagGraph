@@ -1,7 +1,7 @@
 # MagGraph Implementation Status
 
 **Last audited:** 2026-08-09
-**Release:** 0.3.0
+**Release:** 0.4.0
 **Next target:** persisted hybrid retrieval and transaction journals
 
 This is the current PRD-to-implementation summary. The original phase checklist in

@@ -4,6 +4,24 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-09
+
+### Added
+
+- Added explainable hybrid retrieval that combines lexical, semantic, graph, temporal, and provenance signals.
+- Added project-aware recall that includes global memories while preserving project relevance.
+- Added reviewed memory batches with write-ahead transaction journals and automatic recovery after process interruption.
+- Added machine-readable benchmark reports, checked-in performance baselines, and CI benchmark artifacts.
+
+### Changed
+
+- Expanded recall evidence with backlinks and relevance explanations for agent-facing context bundles.
+- Documented explicit performance budgets and release-operation gates for large graph workloads.
+
+### Fixed
+
+- Restored partially applied update, merge, suppress, and unsuppress batches when an index is reopened after interruption.
+
 ## [0.3.0] - 2026-08-09
 
 ### Added
@@ -96,6 +114,7 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.4.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.4.0
 [0.3.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.3.0
 [0.2.5]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.5
 [0.2.4]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.4
