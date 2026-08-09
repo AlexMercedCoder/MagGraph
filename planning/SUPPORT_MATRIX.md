@@ -28,7 +28,7 @@
 | Memory schemas | Yes | Yes | preference, project_fact, decision, task, session_summary, bookmark, tool_failure |
 | Memory provenance/temporal context | Yes | Yes | Project, task/session/tool source, extraction, confidence, validity, supersession, canonical identity |
 | Suppress/unsuppress/merge | Yes | Yes | Suppression filtering and merge provenance |
-| Reviewed memory batches | Yes | Yes | Prevalidated update/suppress/unsuppress/merge with rollback on operation failure |
+| Reviewed memory batches | Yes | Yes | Prevalidated update/suppress/unsuppress/merge with operation rollback and reopen recovery journal |
 | Lakehouse reader | Yes | Yes | Local/file content; remote metadata stubs |
 | Async conveniences | N/A | Yes | Python wrappers retain sync methods as source of truth |
 
@@ -53,3 +53,5 @@ the MagAgent contract suite.
 - Remote content is not fetched unless a resolver explicitly implements and permits it.
 - MagGraph stores graph data and provenance; it does not grant agent tool permissions
   or interpret node text as authorization.
+- Batch recovery manifests and backups remain under `.maggraph`, are never indexed as
+  nodes, and reject paths escaping the graph root.

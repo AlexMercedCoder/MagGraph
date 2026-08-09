@@ -65,6 +65,8 @@ impl GraphIndex {
             )));
         }
 
+        crate::batch::recover_incomplete_batches(&root_path)?;
+
         let mut index = Self {
             root_path,
             by_id: HashMap::new(),

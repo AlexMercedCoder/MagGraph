@@ -94,11 +94,23 @@ jobs:
           test "$update_us" -lt 50000
           echo "Scale benchmark OK: $row"
 
+      - name: Build benchmark regression report
+        run: |
+          python scripts/benchmark_report.py \
+            --input target/benchmark.txt \
+            --baseline planning/benchmark-baseline.json \
+            --output target/benchmark-report.json
+
+      - name: Test benchmark report tooling
+        run: python -m unittest scripts/test_benchmark_report.py
+
       - name: Upload benchmark output
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-output
-          path: target/benchmark.txt
+          path: |
+            target/benchmark.txt
+            target/benchmark-report.json
 
   smoke:
     runs-on: ubuntu-latest

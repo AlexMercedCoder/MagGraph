@@ -66,6 +66,12 @@ flowchart TB
 
 Conflict handling: **Git-native** tree merge; leader serializes writes via lock file.
 
+Reviewed multi-node memory batches use a write-ahead journal under
+`.maggraph/transactions`. Every original node snapshot is synced before the first
+mutation. A successful batch removes the journal; opening a graph with a prepared
+journal atomically restores all snapshots before indexing, covering interruption
+between update, merge, suppression, and deletion operations.
+
 ## Agent integration surface
 
 | Surface | Mechanism |
@@ -88,6 +94,7 @@ Sections (from PRD):
 - Sub-millisecond **local** graph traversal where feasible.
 - **mmap**-oriented storage for hot paths.
 - Atomic, versioned state via Git sync.
+- Versioned benchmark evidence through `maggraph.benchmark-report.v1`.
 
 ## Out of scope for v0 (suggested)
 
