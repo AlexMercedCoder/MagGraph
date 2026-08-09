@@ -412,7 +412,7 @@ fn project_matches(
     extra_string(extra, "project")
         .or_else(|| extra_string(extra, "project_id"))
         .map(|value| value == project)
-        .unwrap_or(false)
+        .unwrap_or(true)
 }
 
 fn temporally_valid(extra: &std::collections::BTreeMap<String, Value>, as_of: i64) -> bool {
@@ -578,6 +578,7 @@ mod tests {
             "project: elsewhere\n",
             "release architecture",
         );
+        write_node(temp.path(), "global", "", "release architecture");
         let index = GraphIndex::open(temp.path()).expect("open");
         let options = HybridQueryOptions {
             text: Some("release architecture".to_string()),
@@ -599,6 +600,7 @@ mod tests {
         assert!(ids.contains(&"neighbor"));
         assert!(ids.contains(&"semantic"));
         assert!(ids.contains(&"new"));
+        assert!(ids.contains(&"global"));
         assert!(!ids.contains(&"expired"));
         assert!(!ids.contains(&"old"));
         assert!(!ids.contains(&"foreign"));
