@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod batch;
 pub mod config;
 pub mod error;
 pub mod graph;
@@ -20,6 +21,9 @@ pub use agent::{
     render_skill_md, write_mcp_scaffold, write_skill_md, EdgePattern, EdgeSource, GraphSchema,
     McpScaffoldContext, SchemaEdge, SkillRenderContext,
 };
+pub use batch::{
+    apply_memory_batch, validate_memory_batch, MemoryBatchOperation, MemoryBatchResult,
+};
 pub use config::{
     LakehouseCacheConfig, LakehouseConfig, MagGraphConfig, RemoteSource, ResolvedConfig,
     StorageConfig, StorageMode, SyncConfig, SyncRole, METADATA_DIR_NAME,
@@ -33,9 +37,15 @@ pub use lakehouse::{
     ContentCache, ContentResolver, FileResolver, HttpResolver, LakehouseReader, NodeWithContent,
     ResolvedContent, ResolverRegistry, S3StubResolver,
 };
-pub use memory::{new_memory_node, validate_memory_type, MemoryNodeKind, MEMORY_TYPES};
+pub use memory::{
+    new_memory_node, new_memory_node_with_context, validate_memory_type, MemoryContext,
+    MemoryNodeKind, MEMORY_TYPES,
+};
 pub use node::{NewNode, Node, NodeMetadata};
-pub use query::{changed_since, search_index, GraphChange, QueryOptions, SearchResult};
+pub use query::{
+    changed_since, hybrid_search_index, search_index, GraphChange, HybridQueryOptions,
+    HybridSearchResult, HybridWeights, QueryOptions, SearchResult,
+};
 pub use recall::{recall_bundle, RecallBundle};
 pub use security::{assert_path_within_root, validate_http_uri_host, validate_relative_node_path};
 pub use sync::{

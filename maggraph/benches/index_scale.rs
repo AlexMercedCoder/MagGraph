@@ -2,7 +2,9 @@ use std::env;
 use std::fs;
 use std::time::{Duration, Instant};
 
-use maggraph::{GraphIndex, QueryOptions};
+use std::collections::HashMap;
+
+use maggraph::{GraphIndex, HybridQueryOptions, QueryOptions};
 use tempfile::TempDir;
 
 fn sizes() -> Vec<usize> {
@@ -44,7 +46,7 @@ fn timed<T>(operation: impl FnOnce() -> T) -> (T, Duration) {
 
 fn main() {
     println!("MagGraph index scale benchmark");
-    println!("nodes,open_ms,search_ms,backlinks_ms,recall_us,update_us");
+    println!("nodes,open_ms,search_ms,hybrid_ms,backlinks_ms,recall_us,update_us");
 
     for count in sizes() {
         let temp = TempDir::new().expect("temp dir");
@@ -60,6 +62,17 @@ fn main() {
         };
         let (results, search) = timed(|| index.search(&options).expect("search"));
         assert!(!results.is_empty());
+        let hybrid_options = HybridQueryOptions {
+            text: Some("needle group 42".into()),
+            tags: vec!["benchmark".into()],
+            seed_ids: vec!["node_000042".into()],
+            semantic_scores: HashMap::from([("node_000142".into(), 0.9)]),
+            limit: 50,
+            ..HybridQueryOptions::default()
+        };
+        let (hybrid_results, hybrid) =
+            timed(|| index.hybrid_search(&hybrid_options).expect("hybrid search"));
+        assert!(!hybrid_results.is_empty());
 
         let (_, backlinks) = timed(|| index.backlinks("node_000042").expect("backlinks"));
         let (_, recall) = timed(|| {
@@ -74,9 +87,10 @@ fn main() {
         });
 
         println!(
-            "{count},{:.3},{:.3},{:.3},{:.3},{:.3}",
+            "{count},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3}",
             open.as_secs_f64() * 1_000.0,
             search.as_secs_f64() * 1_000.0,
+            hybrid.as_secs_f64() * 1_000.0,
             backlinks.as_secs_f64() * 1_000.0,
             recall.as_secs_f64() * 1_000_000.0,
             update.as_secs_f64() * 1_000_000.0,

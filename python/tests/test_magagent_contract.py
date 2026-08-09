@@ -75,6 +75,35 @@ def test_magagent_retrieval_contract(tmp_path: Path) -> None:
     assert len(bundle["body_excerpt"]) <= 24
 
 
+def test_magagent_hybrid_retrieval_contract(tmp_path: Path) -> None:
+    index, _ = _index(tmp_path)
+
+    results = index.hybrid_search(
+        "anchor",
+        node_types=["project_fact", "decision"],
+        seed_ids=["anchor"],
+        semantic_scores={"related": 0.9},
+        limit=10,
+    )
+
+    assert results
+    assert set(results[0]) == {
+        "id",
+        "type",
+        "relative_path",
+        "score",
+        "signals",
+        "reasons",
+        "summary",
+        "modified_unix",
+        "canonical_id",
+    }
+    related = next(item for item in results if item["id"] == "related")
+    assert related["signals"]["semantic"] == pytest.approx(0.9)
+    assert "semantic match" in related["reasons"]
+    assert "graph relationship" in related["reasons"]
+
+
 def test_magagent_incremental_change_contract(tmp_path: Path) -> None:
     index, root = _index(tmp_path)
     created = root / "fresh.md"
@@ -120,6 +149,48 @@ def test_magagent_memory_lifecycle_contract(tmp_path: Path) -> None:
     assert "duplicate" not in index.list_nodes()
     merged = index.read_node("anchor").to_dict()
     assert merged["merged_from"] == ["duplicate"]
+
+
+def test_magagent_memory_provenance_and_temporal_contract(tmp_path: Path) -> None:
+    index, _ = _index(tmp_path)
+    created = index.create_memory_node(
+        "scoped_decision",
+        "decision",
+        "Use the durable runtime.",
+        project="demo",
+        source_task="task_123",
+        source_session="session_456",
+        source_tool="memory_promote",
+        extraction_method="reviewed_inbox",
+        confidence=1.5,
+        valid_from="2025-01-01T00:00:00Z",
+        canonical_id="runtime-decision",
+    )
+
+    metadata = created.to_dict()
+    assert metadata["project"] == "demo"
+    assert metadata["source_task"] == "task_123"
+    assert metadata["source_session"] == "session_456"
+    assert metadata["source_tool"] == "memory_promote"
+    assert metadata["extraction_method"] == "reviewed_inbox"
+    assert metadata["confidence"] == pytest.approx(1.0)
+    assert metadata["canonical_id"] == "runtime-decision"
+
+
+def test_magagent_reviewed_memory_batch_contract(tmp_path: Path) -> None:
+    index, _ = _index(tmp_path)
+    operations = [
+        {"op": "update", "id": "anchor", "body": "Reviewed anchor."},
+        {"op": "suppress", "id": "related", "reason": "stale"},
+    ]
+
+    preview = index.apply_memory_batch(operations, preview=True)
+    applied = index.apply_memory_batch(operations)
+
+    assert preview == {"ok": True, "preview": True, "operations": 2}
+    assert applied["applied"] == ["update:anchor", "suppress:related"]
+    assert index.read_node("anchor").body == "Reviewed anchor.\n"
+    assert all(item["id"] != "related" for item in index.search("related"))
 
 
 def test_magagent_contract_errors_remain_typed(tmp_path: Path) -> None:

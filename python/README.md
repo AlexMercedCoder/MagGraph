@@ -168,6 +168,7 @@ maggraph sync pull
 | `GraphIndex.list_nodes()` | All node ids (sorted) |
 | `GraphIndex.read_node(id)` | `Node` with metadata + body |
 | `GraphIndex.search(...)` | Structured search over ids, types, tags, frontmatter, links, body, and recency |
+| `GraphIndex.hybrid_search(...)` | Explainable lexical + graph + recency + optional semantic retrieval with temporal/project filters |
 | `GraphIndex.backlinks(id)` | Node ids that link to `id` |
 | `GraphIndex.changed_since(unix)` | Files modified after a Unix timestamp |
 | `GraphIndex.update_file(path)` | Refresh one changed markdown file in the index |
@@ -177,6 +178,7 @@ maggraph sync pull
 | `GraphIndex.traverse_async(...)` | Async version |
 | `GraphIndex.create_node(...)` | Write new node to disk + index |
 | `GraphIndex.create_memory_node(...)` | Create typed memory nodes (`preference`, `project_fact`, `decision`, `task`, `session_summary`, `bookmark`, `tool_failure`) |
+| `GraphIndex.apply_memory_batch(...)` | Preview or apply reviewed update/suppress/unsuppress/merge operations as one rollback-capable batch |
 | `GraphIndex.update_node(id, body)` | Update body on disk |
 | `GraphIndex.delete_node(id)` | Delete node from disk + index |
 | `GraphIndex.suppress_node(id)` / `unsuppress_node(id)` | Mark/unmark stale or duplicate nodes |

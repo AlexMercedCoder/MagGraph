@@ -315,6 +315,19 @@ results = index.search("release checklist", node_type="project_fact", limit=5)
 for item in results:
     print(item["id"], item["score"], item["matched"])
 
+# Hybrid retrieval combines graph-native signals with optional semantic scores
+# produced by any local or hosted embedding adapter.
+hybrid = index.hybrid_search(
+    "release checklist",
+    node_types=["project_fact", "decision"],
+    project="demo",
+    seed_ids=["release_process"],
+    semantic_scores={"release_decision": 0.91},
+    limit=5,
+)
+for item in hybrid:
+    print(item["id"], item["score"], item["reasons"], item["signals"])
+
 # Reverse edges: who links to this node?
 print(index.backlinks("release_process"))
 
@@ -337,8 +350,27 @@ index.create_memory_node(
     "prefers_cli",
     "preference",
     "User prefers CLI-first workflows over config-file editing.",
+    project="magagent",
+    source_task="task_0042",
+    source_session="session_0188",
+    extraction_method="reviewed_inbox",
+    confidence=0.95,
 )
+
+# Preview and atomically apply a reviewed set of edits.
+operations = [
+    {"op": "update", "id": "prefers_cli", "body": "User prefers CLI-first setup."},
+    {"op": "suppress", "id": "old_setup_fact", "reason": "superseded"},
+]
+index.apply_memory_batch(operations, preview=True)
+index.apply_memory_batch(operations)
 ```
+
+Hybrid retrieval excludes suppressed, expired, and superseded nodes by default.
+Use `valid_from`, `valid_until`, `supersedes`, `canonical_id`, and `project` in
+frontmatter to make temporal and project scope explicit. Embedding generation is
+intentionally pluggable: MagGraph accepts normalized per-node semantic scores without
+forcing users to install or call a particular model.
 
 Supported memory kinds: `preference`, `project_fact`, `decision`, `task`,
 `session_summary`, `bookmark`, and `tool_failure`.

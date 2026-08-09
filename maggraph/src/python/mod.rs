@@ -1,5 +1,6 @@
 //! PyO3 bindings for MagGraph (Phase 7 + T-F4 lakehouse extension).
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use pyo3::exceptions::PyValueError;
@@ -16,11 +17,16 @@ use crate::index::GraphIndex;
 use crate::lakehouse::{
     LakehouseReader, NodeWithContent as CoreNodeWithContent, ResolvedContent as CoreResolvedContent,
 };
-use crate::memory::{new_memory_node, validate_memory_type, MemoryNodeKind};
+use crate::memory::{
+    new_memory_node_with_context, validate_memory_type, MemoryContext, MemoryNodeKind,
+};
 use crate::node::{NewNode, Node as CoreNode, NodeMetadata};
-use crate::query::{GraphChange, QueryOptions, SearchResult};
+use crate::query::{
+    GraphChange, HybridQueryOptions, HybridSearchResult, QueryOptions, SearchResult,
+};
 use crate::recall::RecallBundle;
 use crate::MagGraphConfig;
+use crate::{apply_memory_batch, validate_memory_batch, MemoryBatchOperation};
 
 pyo3::create_exception!(_maggraph, PyMagGraphError, pyo3::exceptions::PyException);
 
@@ -62,6 +68,42 @@ fn parse_memory_kind(kind: &str) -> PyResult<MemoryNodeKind> {
             "unknown memory kind {other:?}; expected one of preference, project_fact, decision, task, session_summary, bookmark, tool_failure"
         ))),
     }
+}
+
+fn parse_memory_batch(
+    operations: Vec<HashMap<String, String>>,
+) -> PyResult<Vec<MemoryBatchOperation>> {
+    operations
+        .into_iter()
+        .map(|item| {
+            let operation = item.get("op").map(String::as_str).unwrap_or("");
+            let required = |key: &str| {
+                item.get(key).cloned().ok_or_else(|| {
+                    PyValueError::new_err(format!("memory batch {operation:?} requires {key:?}"))
+                })
+            };
+            match operation {
+                "update" => Ok(MemoryBatchOperation::UpdateBody {
+                    id: required("id")?,
+                    body: required("body")?,
+                }),
+                "suppress" => Ok(MemoryBatchOperation::Suppress {
+                    id: required("id")?,
+                    reason: item.get("reason").cloned(),
+                }),
+                "unsuppress" => Ok(MemoryBatchOperation::Unsuppress {
+                    id: required("id")?,
+                }),
+                "merge" => Ok(MemoryBatchOperation::Merge {
+                    target_id: required("target_id")?,
+                    source_id: required("source_id")?,
+                }),
+                _ => Err(PyValueError::new_err(format!(
+                    "unknown memory batch operation {operation:?}"
+                ))),
+            }
+        })
+        .collect()
 }
 
 fn yaml_key_to_string(key: &Value) -> Option<String> {
@@ -143,6 +185,23 @@ fn search_result_to_dict<'py>(
     dict.set_item("matched", &item.matched)?;
     dict.set_item("summary", &item.summary)?;
     dict.set_item("modified_unix", item.modified_unix)?;
+    Ok(dict)
+}
+
+fn hybrid_search_result_to_dict<'py>(
+    py: Python<'py>,
+    item: &HybridSearchResult,
+) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("id", &item.id)?;
+    dict.set_item("type", &item.node_type)?;
+    dict.set_item("relative_path", &item.relative_path)?;
+    dict.set_item("score", item.score)?;
+    dict.set_item("signals", &item.signals)?;
+    dict.set_item("reasons", &item.reasons)?;
+    dict.set_item("summary", &item.summary)?;
+    dict.set_item("modified_unix", item.modified_unix)?;
+    dict.set_item("canonical_id", &item.canonical_id)?;
     Ok(dict)
 }
 
@@ -523,6 +582,7 @@ impl PyGraphIndex {
     }
 
     #[pyo3(signature = (query="", node_type=None, tags=None, include_suppressed=false, limit=50, modified_since_unix=None))]
+    #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
         py: Python<'_>,
@@ -550,6 +610,49 @@ impl PyGraphIndex {
             .map_err(map_err)?
             .iter()
             .map(|item| Ok(search_result_to_dict(py, item)?.into()))
+            .collect()
+    }
+
+    #[pyo3(signature = (query="", node_types=None, tags=None, project=None, seed_ids=None, semantic_scores=None, include_suppressed=false, include_superseded=false, limit=20, as_of_unix=None, recency_half_life_days=30.0))]
+    #[allow(clippy::too_many_arguments)]
+    fn hybrid_search(
+        &self,
+        py: Python<'_>,
+        query: &str,
+        node_types: Option<Vec<String>>,
+        tags: Option<Vec<String>>,
+        project: Option<String>,
+        seed_ids: Option<Vec<String>>,
+        semantic_scores: Option<HashMap<String, f64>>,
+        include_suppressed: bool,
+        include_superseded: bool,
+        limit: usize,
+        as_of_unix: Option<i64>,
+        recency_half_life_days: f64,
+    ) -> PyResult<Vec<Py<PyAny>>> {
+        let options = HybridQueryOptions {
+            text: if query.is_empty() {
+                None
+            } else {
+                Some(query.to_string())
+            },
+            node_types: node_types.unwrap_or_default(),
+            tags: tags.unwrap_or_default(),
+            project,
+            seed_ids: seed_ids.unwrap_or_default(),
+            semantic_scores: semantic_scores.unwrap_or_default(),
+            include_suppressed,
+            include_superseded,
+            limit,
+            as_of_unix,
+            recency_half_life_days,
+            ..HybridQueryOptions::default()
+        };
+        self.inner
+            .hybrid_search(&options)
+            .map_err(map_err)?
+            .iter()
+            .map(|item| Ok(hybrid_search_result_to_dict(py, item)?.into()))
             .collect()
     }
 
@@ -595,25 +698,47 @@ impl PyGraphIndex {
         })
     }
 
-    #[pyo3(signature = (node_id, kind, body="", links=None))]
+    #[pyo3(signature = (node_id, kind, body="", links=None, project=None, source_task=None, source_session=None, source_tool=None, extraction_method=None, confidence=None, valid_from=None, valid_until=None, supersedes=None, canonical_id=None))]
+    #[allow(clippy::too_many_arguments)]
     fn create_memory_node(
         &mut self,
         node_id: &str,
         kind: &str,
         body: &str,
         links: Option<Vec<String>>,
+        project: Option<String>,
+        source_task: Option<String>,
+        source_session: Option<String>,
+        source_tool: Option<String>,
+        extraction_method: Option<String>,
+        confidence: Option<f64>,
+        valid_from: Option<String>,
+        valid_until: Option<String>,
+        supersedes: Option<String>,
+        canonical_id: Option<String>,
     ) -> PyResult<PyNode> {
         if !validate_memory_type(kind) {
             return Err(PyValueError::new_err(format!(
                 "unsupported memory kind: {kind}"
             )));
         }
-        let new_node = new_memory_node(
+        let new_node = new_memory_node_with_context(
             node_id,
             parse_memory_kind(kind)?,
             body,
             links.unwrap_or_default(),
-            Default::default(),
+            MemoryContext {
+                project,
+                source_task,
+                source_session,
+                source_tool,
+                extraction_method,
+                confidence,
+                valid_from,
+                valid_until,
+                supersedes,
+                canonical_id,
+            },
         );
         Ok(PyNode {
             inner: self.inner.create_node(new_node).map_err(map_err)?,
@@ -645,6 +770,29 @@ impl PyGraphIndex {
         self.inner
             .merge_nodes(target_id, source_id)
             .map_err(map_err)
+    }
+
+    #[pyo3(signature = (operations, preview=false))]
+    fn apply_memory_batch(
+        &mut self,
+        py: Python<'_>,
+        operations: Vec<HashMap<String, String>>,
+        preview: bool,
+    ) -> PyResult<Py<PyAny>> {
+        let operations = parse_memory_batch(operations)?;
+        let dict = PyDict::new(py);
+        if preview {
+            validate_memory_batch(&self.inner, &operations).map_err(map_err)?;
+            dict.set_item("ok", true)?;
+            dict.set_item("preview", true)?;
+            dict.set_item("operations", operations.len())?;
+        } else {
+            let result = apply_memory_batch(&mut self.inner, &operations).map_err(map_err)?;
+            dict.set_item("ok", true)?;
+            dict.set_item("preview", false)?;
+            dict.set_item("applied", result.applied)?;
+        }
+        Ok(dict.into())
     }
 
     #[pyo3(signature = (node_id, reason="", body_chars=1200))]

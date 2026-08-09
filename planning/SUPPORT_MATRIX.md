@@ -21,10 +21,14 @@
 | `update_file` | Yes | Yes | Explicit one-file create/update/delete refresh |
 | `changed_since` | Yes | Yes | Unix modification-time change records |
 | Structured search | Yes | Yes | ID, type, tags/frontmatter, links, body, recency |
+| Explainable hybrid retrieval | Yes | Yes | Lexical, graph, recency, optional caller-supplied semantic scores, temporal/project scope |
+| Embedding generation | Adapter input | Adapter input | Core accepts normalized scores; callers choose local or provider-backed embeddings |
 | Backlinks/traversal | Yes | Yes | Frontmatter links and body wikilinks |
 | Recall bundle | Yes | Yes | Bounded body excerpt, metadata, neighbors, reason, Markdown |
 | Memory schemas | Yes | Yes | preference, project_fact, decision, task, session_summary, bookmark, tool_failure |
+| Memory provenance/temporal context | Yes | Yes | Project, task/session/tool source, extraction, confidence, validity, supersession, canonical identity |
 | Suppress/unsuppress/merge | Yes | Yes | Suppression filtering and merge provenance |
+| Reviewed memory batches | Yes | Yes | Prevalidated update/suppress/unsuppress/merge with rollback on operation failure |
 | Lakehouse reader | Yes | Yes | Local/file content; remote metadata stubs |
 | Async conveniences | N/A | Yes | Python wrappers retain sync methods as source of truth |
 

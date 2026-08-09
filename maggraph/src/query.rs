@@ -1,9 +1,12 @@
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::{DateTime, Utc};
 use serde_yaml::Value;
 
 use crate::error::Result;
-use crate::index::GraphIndex;
+use crate::graph::GraphAdjacency;
+use crate::index::{GraphIndex, NodeIndexEntry};
 use crate::node::Node;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -32,6 +35,76 @@ pub struct GraphChange {
     pub id: String,
     pub relative_path: String,
     pub modified_unix: i64,
+}
+
+/// Relative signal weights used by hybrid retrieval.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HybridWeights {
+    pub lexical: f64,
+    pub semantic: f64,
+    pub graph: f64,
+    pub recency: f64,
+}
+
+impl Default for HybridWeights {
+    fn default() -> Self {
+        Self {
+            lexical: 0.45,
+            semantic: 0.30,
+            graph: 0.15,
+            recency: 0.10,
+        }
+    }
+}
+
+/// Explainable hybrid query over graph-native and optional caller-provided signals.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HybridQueryOptions {
+    pub text: Option<String>,
+    pub node_types: Vec<String>,
+    pub tags: Vec<String>,
+    pub project: Option<String>,
+    pub seed_ids: Vec<String>,
+    pub semantic_scores: HashMap<String, f64>,
+    pub include_suppressed: bool,
+    pub include_superseded: bool,
+    pub limit: usize,
+    pub as_of_unix: Option<i64>,
+    pub recency_half_life_days: f64,
+    pub weights: HybridWeights,
+}
+
+impl Default for HybridQueryOptions {
+    fn default() -> Self {
+        Self {
+            text: None,
+            node_types: Vec::new(),
+            tags: Vec::new(),
+            project: None,
+            seed_ids: Vec::new(),
+            semantic_scores: HashMap::new(),
+            include_suppressed: false,
+            include_superseded: false,
+            limit: 20,
+            as_of_unix: None,
+            recency_half_life_days: 30.0,
+            weights: HybridWeights::default(),
+        }
+    }
+}
+
+/// Hybrid result with component scores and human-readable retrieval reasons.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HybridSearchResult {
+    pub id: String,
+    pub node_type: String,
+    pub relative_path: String,
+    pub score: f64,
+    pub signals: BTreeMap<String, f64>,
+    pub reasons: Vec<String>,
+    pub summary: String,
+    pub modified_unix: Option<i64>,
+    pub canonical_id: String,
 }
 
 pub fn search_index(index: &GraphIndex, options: &QueryOptions) -> Result<Vec<SearchResult>> {
@@ -112,6 +185,87 @@ pub fn search_index(index: &GraphIndex, options: &QueryOptions) -> Result<Vec<Se
     Ok(results)
 }
 
+/// Rank nodes using lexical, graph, recency, and optional semantic scores.
+pub fn hybrid_search_index(
+    index: &GraphIndex,
+    options: &HybridQueryOptions,
+) -> Result<Vec<HybridSearchResult>> {
+    let now = options.as_of_unix.unwrap_or_else(current_unix);
+    let needle = options.text.as_deref().unwrap_or("").to_ascii_lowercase();
+    let adjacency = index.adjacency()?;
+    let graph_scores = graph_scores(&adjacency, &options.seed_ids);
+    let superseded = superseded_ids(index);
+    let mut results = Vec::new();
+
+    for (id, entry) in index.iter() {
+        if !options.node_types.is_empty() && !options.node_types.contains(&entry.metadata.node_type)
+        {
+            continue;
+        }
+        if !options.include_suppressed && is_suppressed_extra(&entry.metadata.extra) {
+            continue;
+        }
+        if !options.include_superseded && superseded.contains(id) {
+            continue;
+        }
+        if !tags_match(&entry.metadata.extra, &options.tags)
+            || !project_matches(&entry.metadata.extra, options.project.as_deref())
+            || !temporally_valid(&entry.metadata.extra, now)
+        {
+            continue;
+        }
+
+        let modified = modified_unix(index, &entry.relative_path);
+        let lexical = lexical_score(id, entry, &needle);
+        let semantic = options
+            .semantic_scores
+            .get(id)
+            .copied()
+            .unwrap_or(0.0)
+            .clamp(0.0, 1.0);
+        let graph = graph_scores.get(id).copied().unwrap_or(0.0);
+        let recency = recency_score(modified, now, options.recency_half_life_days);
+        if needle.is_empty() && semantic == 0.0 && graph == 0.0 {
+            continue;
+        }
+
+        let score = lexical * options.weights.lexical
+            + semantic * options.weights.semantic
+            + graph * options.weights.graph
+            + recency * options.weights.recency;
+        let mut signals = BTreeMap::new();
+        signals.insert("graph".to_string(), graph);
+        signals.insert("lexical".to_string(), lexical);
+        signals.insert("recency".to_string(), recency);
+        signals.insert("semantic".to_string(), semantic);
+        results.push(HybridSearchResult {
+            id: id.to_string(),
+            node_type: entry.metadata.node_type.clone(),
+            relative_path: entry.relative_path.display().to_string(),
+            score,
+            signals,
+            reasons: signal_reasons(lexical, semantic, graph, recency),
+            summary: entry.summary.clone(),
+            modified_unix: modified,
+            canonical_id: extra_string(&entry.metadata.extra, "canonical_id")
+                .unwrap_or_else(|| id.to_string()),
+        });
+    }
+
+    results.sort_by(|a, b| {
+        b.score
+            .total_cmp(&a.score)
+            .then_with(|| b.modified_unix.cmp(&a.modified_unix))
+            .then_with(|| a.id.cmp(&b.id))
+    });
+    results.truncate(if options.limit == 0 {
+        20
+    } else {
+        options.limit
+    });
+    Ok(results)
+}
+
 pub fn changed_since(index: &GraphIndex, since_unix: i64) -> Vec<GraphChange> {
     let mut changes = Vec::new();
     for (id, entry) in index.iter() {
@@ -165,6 +319,135 @@ fn score_text(
     } else {
         0
     }
+}
+
+fn lexical_score(id: &str, entry: &NodeIndexEntry, needle: &str) -> f64 {
+    if needle.is_empty() {
+        return 0.0;
+    }
+    let mut matched = Vec::new();
+    let mut raw = score_text(id, needle, 30, "id", &mut matched)
+        + score_text(&entry.metadata.node_type, needle, 12, "type", &mut matched)
+        + score_text(entry.body(), needle, 6, "body", &mut matched);
+    for link in &entry.metadata.links {
+        raw += score_text(link, needle, 10, "links", &mut matched);
+    }
+    for (key, value) in &entry.metadata.extra {
+        raw += score_text(key, needle, 4, "frontmatter", &mut matched);
+        raw += score_text(
+            &value_to_search_text(value),
+            needle,
+            4,
+            "frontmatter",
+            &mut matched,
+        );
+    }
+    (f64::from(raw) / 30.0).clamp(0.0, 1.0)
+}
+
+fn graph_scores(adjacency: &GraphAdjacency, seeds: &[String]) -> HashMap<String, f64> {
+    let mut scores = HashMap::new();
+    for seed in seeds {
+        scores.insert(seed.clone(), 1.0);
+        for neighbor in adjacency
+            .neighbors(seed)
+            .iter()
+            .chain(adjacency.backlinks(seed).iter())
+        {
+            scores
+                .entry(neighbor.clone())
+                .and_modify(|score| *score = f64::max(*score, 0.75))
+                .or_insert(0.75);
+            for second in adjacency
+                .neighbors(neighbor)
+                .iter()
+                .chain(adjacency.backlinks(neighbor).iter())
+            {
+                scores
+                    .entry(second.clone())
+                    .and_modify(|score| *score = f64::max(*score, 0.4))
+                    .or_insert(0.4);
+            }
+        }
+    }
+    scores
+}
+
+fn recency_score(modified: Option<i64>, now: i64, half_life_days: f64) -> f64 {
+    let Some(modified) = modified else {
+        return 0.0;
+    };
+    if modified >= now {
+        return 1.0;
+    }
+    let half_life_seconds = half_life_days.max(0.01) * 86_400.0;
+    let age = (now - modified) as f64;
+    2.0_f64.powf(-age / half_life_seconds).clamp(0.0, 1.0)
+}
+
+fn signal_reasons(lexical: f64, semantic: f64, graph: f64, recency: f64) -> Vec<String> {
+    let mut reasons = Vec::new();
+    if lexical > 0.0 {
+        reasons.push("lexical match".to_string());
+    }
+    if semantic > 0.0 {
+        reasons.push("semantic match".to_string());
+    }
+    if graph > 0.0 {
+        reasons.push("graph relationship".to_string());
+    }
+    if recency >= 0.5 {
+        reasons.push("recent memory".to_string());
+    }
+    reasons
+}
+
+fn project_matches(
+    extra: &std::collections::BTreeMap<String, Value>,
+    project: Option<&str>,
+) -> bool {
+    let Some(project) = project else {
+        return true;
+    };
+    extra_string(extra, "project")
+        .or_else(|| extra_string(extra, "project_id"))
+        .map(|value| value == project)
+        .unwrap_or(false)
+}
+
+fn temporally_valid(extra: &std::collections::BTreeMap<String, Value>, as_of: i64) -> bool {
+    let valid_from = extra.get("valid_from").and_then(parse_time_value);
+    let valid_until = extra.get("valid_until").and_then(parse_time_value);
+    valid_from.map(|value| value <= as_of).unwrap_or(true)
+        && valid_until.map(|value| value > as_of).unwrap_or(true)
+}
+
+fn parse_time_value(value: &Value) -> Option<i64> {
+    if let Some(value) = value.as_i64() {
+        return Some(value);
+    }
+    value.as_str().and_then(|raw| {
+        raw.parse::<i64>().ok().or_else(|| {
+            DateTime::parse_from_rfc3339(raw)
+                .ok()
+                .map(|value| value.timestamp())
+        })
+    })
+}
+
+fn superseded_ids(index: &GraphIndex) -> HashSet<String> {
+    index
+        .iter()
+        .filter_map(|(_, entry)| extra_string(&entry.metadata.extra, "supersedes"))
+        .collect()
+}
+
+fn extra_string(extra: &std::collections::BTreeMap<String, Value>, key: &str) -> Option<String> {
+    extra.get(key).and_then(Value::as_str).map(str::to_string)
+}
+
+fn current_unix() -> i64 {
+    Utc::now().timestamp()
 }
 
 fn tags_match(extra: &std::collections::BTreeMap<String, Value>, required: &[String]) -> bool {
@@ -232,4 +515,112 @@ fn system_time_to_unix(time: SystemTime) -> Option<i64> {
     time.duration_since(UNIX_EPOCH)
         .ok()
         .and_then(|duration| i64::try_from(duration.as_secs()).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::TempDir;
+
+    use super::*;
+
+    fn write_node(root: &std::path::Path, id: &str, extra: &str, body: &str) {
+        fs::write(
+            root.join(format!("{id}.md")),
+            format!("---\nid: {id}\ntype: project_fact\n{extra}---\n{body}\n"),
+        )
+        .expect("write node");
+    }
+
+    #[test]
+    fn hybrid_search_combines_explainable_signals_and_filters_stale_nodes() {
+        let temp = TempDir::new().expect("tempdir");
+        write_node(
+            temp.path(),
+            "anchor",
+            "project: demo\nlinks: [neighbor]\n",
+            "release architecture",
+        );
+        write_node(
+            temp.path(),
+            "neighbor",
+            "project: demo\n",
+            "connected decision",
+        );
+        write_node(
+            temp.path(),
+            "semantic",
+            "project: demo\n",
+            "unrelated vocabulary",
+        );
+        write_node(
+            temp.path(),
+            "expired",
+            "project: demo\nvalid_until: 2020-01-01T00:00:00Z\n",
+            "release architecture",
+        );
+        write_node(
+            temp.path(),
+            "old",
+            "project: demo\n",
+            "release architecture",
+        );
+        write_node(
+            temp.path(),
+            "new",
+            "project: demo\nsupersedes: old\ncanonical_id: decision-current\n",
+            "release architecture",
+        );
+        write_node(
+            temp.path(),
+            "foreign",
+            "project: elsewhere\n",
+            "release architecture",
+        );
+        let index = GraphIndex::open(temp.path()).expect("open");
+        let options = HybridQueryOptions {
+            text: Some("release architecture".to_string()),
+            project: Some("demo".to_string()),
+            seed_ids: vec!["anchor".to_string()],
+            semantic_scores: HashMap::from([("semantic".to_string(), 0.95)]),
+            as_of_unix: Some(1_800_000_000),
+            limit: 20,
+            ..HybridQueryOptions::default()
+        };
+
+        let results = hybrid_search_index(&index, &options).expect("hybrid search");
+        let ids = results
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect::<Vec<_>>();
+
+        assert!(ids.contains(&"anchor"));
+        assert!(ids.contains(&"neighbor"));
+        assert!(ids.contains(&"semantic"));
+        assert!(ids.contains(&"new"));
+        assert!(!ids.contains(&"expired"));
+        assert!(!ids.contains(&"old"));
+        assert!(!ids.contains(&"foreign"));
+        assert_eq!(
+            results
+                .iter()
+                .find(|item| item.id == "new")
+                .unwrap()
+                .canonical_id,
+            "decision-current"
+        );
+        assert!(results
+            .iter()
+            .find(|item| item.id == "neighbor")
+            .unwrap()
+            .reasons
+            .contains(&"graph relationship".to_string()));
+        assert!(results
+            .iter()
+            .find(|item| item.id == "semantic")
+            .unwrap()
+            .reasons
+            .contains(&"semantic match".to_string()));
+    }
 }

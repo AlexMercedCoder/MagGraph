@@ -9,6 +9,17 @@ class SearchResult(TypedDict):
     summary: str
     modified_unix: Optional[int]
 
+class HybridSearchResult(TypedDict):
+    id: str
+    type: str
+    relative_path: str
+    score: float
+    signals: dict[str, float]
+    reasons: list[str]
+    summary: str
+    modified_unix: Optional[int]
+    canonical_id: str
+
 class GraphChange(TypedDict):
     id: str
     relative_path: str
@@ -24,6 +35,12 @@ class RecallBundle(TypedDict):
     metadata: dict[str, object]
     relevance_reason: str
     markdown: str
+
+class MemoryBatchResult(TypedDict, total=False):
+    ok: bool
+    preview: bool
+    operations: int
+    applied: list[str]
 
 class MagGraphError(Exception): ...
 
@@ -54,6 +71,20 @@ class GraphIndex:
         limit: int = 50,
         modified_since_unix: int | None = None,
     ) -> list[SearchResult]: ...
+    def hybrid_search(
+        self,
+        query: str = "",
+        node_types: list[str] | None = None,
+        tags: list[str] | None = None,
+        project: str | None = None,
+        seed_ids: list[str] | None = None,
+        semantic_scores: dict[str, float] | None = None,
+        include_suppressed: bool = False,
+        include_superseded: bool = False,
+        limit: int = 20,
+        as_of_unix: int | None = None,
+        recency_half_life_days: float = 30.0,
+    ) -> list[HybridSearchResult]: ...
     def backlinks(self, node_id: str) -> list[str]: ...
     def changed_since(self, since_unix: int) -> list[GraphChange]: ...
     def update_file(self, path: str) -> Optional[str]: ...
@@ -79,12 +110,25 @@ class GraphIndex:
         ],
         body: str = "",
         links: list[str] | None = None,
+        project: str | None = None,
+        source_task: str | None = None,
+        source_session: str | None = None,
+        source_tool: str | None = None,
+        extraction_method: str | None = None,
+        confidence: float | None = None,
+        valid_from: str | None = None,
+        valid_until: str | None = None,
+        supersedes: str | None = None,
+        canonical_id: str | None = None,
     ) -> Node: ...
     def update_node(self, node_id: str, body: str) -> None: ...
     def delete_node(self, node_id: str) -> None: ...
     def suppress_node(self, node_id: str, reason: str | None = None) -> None: ...
     def unsuppress_node(self, node_id: str) -> None: ...
     def merge_nodes(self, target_id: str, source_id: str) -> None: ...
+    def apply_memory_batch(
+        self, operations: list[dict[str, str]], preview: bool = False
+    ) -> MemoryBatchResult: ...
     def recall_bundle(
         self, node_id: str, reason: str = "", body_chars: int = 1200
     ) -> RecallBundle: ...

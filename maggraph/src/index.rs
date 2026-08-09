@@ -8,7 +8,9 @@ use walkdir::WalkDir;
 use crate::error::{MagGraphError, Result};
 use crate::graph::GraphAdjacency;
 use crate::node::{NewNode, Node, NodeMetadata};
-use crate::query::{changed_since, GraphChange, QueryOptions, SearchResult};
+use crate::query::{
+    changed_since, GraphChange, HybridQueryOptions, HybridSearchResult, QueryOptions, SearchResult,
+};
 use crate::recall::{recall_bundle, RecallBundle};
 use crate::security::validate_relative_node_path;
 use crate::sync::WritePolicy;
@@ -200,6 +202,11 @@ impl GraphIndex {
     /// Structured graph-native search over ids, types, frontmatter, links, body, tags, and recency.
     pub fn search(&self, options: &QueryOptions) -> Result<Vec<SearchResult>> {
         crate::query::search_index(self, options)
+    }
+
+    /// Explainable hybrid retrieval over lexical, graph, recency, and semantic signals.
+    pub fn hybrid_search(&self, options: &HybridQueryOptions) -> Result<Vec<HybridSearchResult>> {
+        crate::query::hybrid_search_index(self, options)
     }
 
     /// Node ids that link to `id`.
