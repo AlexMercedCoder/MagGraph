@@ -2,6 +2,7 @@ mod frontmatter;
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -93,7 +94,26 @@ impl Node {
         }
 
         let contents = self.to_markdown()?;
-        fs::write(&path, contents).map_err(|source| MagGraphError::NodeWrite { path, source })
+        let mut pending =
+            tempfile::NamedTempFile::new_in(path.parent().unwrap_or_else(|| Path::new(".")))
+                .map_err(|source| MagGraphError::NodeWrite {
+                    path: path.clone(),
+                    source,
+                })?;
+        pending
+            .write_all(contents.as_bytes())
+            .and_then(|_| pending.as_file().sync_all())
+            .map_err(|source| MagGraphError::NodeWrite {
+                path: path.clone(),
+                source,
+            })?;
+        pending
+            .persist(&path)
+            .map_err(|error| MagGraphError::NodeWrite {
+                path,
+                source: error.error,
+            })?;
+        Ok(())
     }
 
     pub fn id(&self) -> &str {
@@ -226,6 +246,37 @@ links: ["getting_started"]
 
         let reloaded = Node::from_file(root.join("subdir/new_node.md"), &root).expect("reload");
         assert_eq!(reloaded, node);
+    }
+
+    #[test]
+    fn atomic_replacement_ignores_orphaned_pending_files() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        fs::create_dir_all(&root).expect("create root");
+
+        let mut node = Node {
+            metadata: NodeMetadata {
+                id: "durable".into(),
+                node_type: "note".into(),
+                source: None,
+                links: vec![],
+                extra: BTreeMap::new(),
+            },
+            body: "original\n".into(),
+            relative_path: PathBuf::from("durable.md"),
+        };
+        node.write_to(&root).expect("initial write");
+
+        fs::write(root.join(".tmp-interrupted-write"), "partial").expect("orphan temp");
+        node.body = "replacement\n".into();
+        node.write_to(&root).expect("atomic replacement");
+
+        let reloaded = Node::from_file(root.join("durable.md"), &root).expect("reload");
+        assert_eq!(reloaded.body, "replacement\n");
+        assert_eq!(
+            fs::read_to_string(root.join(".tmp-interrupted-write")).unwrap(),
+            "partial"
+        );
     }
 
     #[test]

@@ -1,105 +1,62 @@
-# MagGraph — Implementation Status (PRD vs v0.1)
+# MagGraph Implementation Status
 
-What shipped in **v0.2.0** versus what [`PRD.md`](../PRD.md) describes long-term. Use this to set expectations for users and agents reading the PRD.
+**Last audited:** 2026-08-09
+**Release:** 0.3.0
+**Next target:** persisted hybrid retrieval and transaction journals
 
-**Last updated:** 2026-06-04
+This is the current PRD-to-implementation summary. The original phase checklist in
+[`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) and completion log in
+[`PROGRESS.md`](./PROGRESS.md) are retained as historical records.
 
----
+## Current Product
 
-## Summary
+MagGraph is a Rust graph engine with Markdown/YAML files as the durable source of
+truth. It provides a Rust library, CLI, Python package, FastMCP scaffold, embedded
+loopback UI, Git synchronization, and lakehouse content references.
 
-| Area | v0.1 status | PRD vision |
-|------|-------------|------------|
-| Local markdown graph | ✅ Shipped | Match |
-| Wikilinks + traversal | ✅ Shipped | Match |
-| Search, backlinks, recall bundles | ✅ Shipped | Match for agent retrieval MVP |
-| `maggraph.toml` config | ✅ Shipped | Match |
-| Git sync leader/follower | ✅ Shipped (libgit2) | Match |
-| Lakehouse semantic pointers | ✅ Shipped (read path) | Partial — see below |
-| CLI (`query`, `sync`, `scaffold`, `ui`) | ✅ Shipped | Match |
-| Python bindings | ✅ Shipped, including LakehouseReader and agent retrieval APIs | Match for current local/lakehouse MVP |
-| MCP + SKILL.md | ✅ Shipped | Match |
-| Embedded UI | ✅ Shipped (localhost) | Match |
-| Security hardening | ✅ MVP review | Ongoing — see [`SECURITY.md`](./SECURITY.md) |
+| Surface | Status | Contract |
+| --- | --- | --- |
+| Markdown node CRUD | Supported | Atomic same-directory replacement; path-safe IDs and files |
+| Index and traversal | Supported | Full open/rescan, one-file refresh, BFS/DFS, wikilinks |
+| Agent retrieval | Supported | Structured search, backlinks, recall bundles, change feed |
+| Agent memory lifecycle | Supported | Seven memory kinds, suppress, unsuppress, merge provenance |
+| Python API | Supported and typed | Python 3.9-3.14, PyO3 abi3 wheels, async conveniences |
+| Git sync | Supported | Leader/follower policy, local lock, push/pull/conflict reporting |
+| Embedded UI | Supported | Loopback-only REST and static dashboard |
+| MCP and skills | Scaffolded | Generated FastMCP server and `SKILL.md`; MagGraph is not an MCP host |
+| Lakehouse pointers | Partial | Local/file resolution and metadata stubs for S3/HTTP |
 
----
+The exact Rust, Python, CLI, UI, and distribution guarantees are listed in
+[`SUPPORT_MATRIX.md`](./SUPPORT_MATRIX.md).
 
-## Shipped and aligned with PRD
+## 0.3 Release
 
-- Markdown nodes with YAML frontmatter (`id`, `type`, `source`, `links`, extensions)
-- Graph index: scan, CRUD, duplicate ID detection
-- Structured search, backlinks, changed-since, one-file index refresh, recall bundles
-- Agent memory helpers for preferences, project facts, decisions, tasks, summaries, bookmarks, and tool failures
-- Memory quality operations: suppress, unsuppress, and merge
-- Directed edges from frontmatter `links` + body `[[wikilinks]]`
-- BFS/DFS traversal with Markdown reports
-- Lakehouse **URI resolution** and pluggable resolvers (file, s3, http schemes)
-- On-disk cache for external content metadata
-- Git init/clone, commit, pull (FF + merge), push, status
-- Leader write lock (`.maggraph/lock.toml`) and follower read-only policy
-- CLI, PyO3, FastMCP scaffold, local web UI
-- SSRF/path defenses at resolution time (defense in depth)
+- Node writes use flushed same-directory temporary files and atomic replacement.
+- Disk deletion completes before the in-memory index entry is removed.
+- Malformed incremental updates preserve the last valid indexed state.
+- Merge provenance accumulates across sources and interrupted merges are retry-safe.
+- Parsed bodies, summaries, and wikilinks are retained in the in-memory index so
+  search, backlinks, and recall do not repeatedly scan the filesystem.
+- Scale benchmarks cover 1K, 10K, and opt-in 100K-node graphs.
+- Python behavioral contract tests pin every API currently consumed by MagAgent.
 
----
+## Partial Or Deferred
 
-## Partial or stubbed (documented gaps)
+| Capability | Current behavior | Direction |
+| --- | --- | --- |
+| Persisted lexical/vector index | In-memory parsed-content index | Versioned persisted hybrid index |
+| Temporal memory | Modification-time filtering | `valid_from`, `valid_until`, `supersedes`, canonical identity |
+| Multi-node transactions | Atomic single-node writes; retry-safe merge | Journaled graph batches |
+| Filesystem watch | Explicit `update_file` / `rescan` | Optional watcher/change stream |
+| HTTP/S3 retrieval | Metadata and policy stubs | Opt-in implementations with SSRF and credential controls |
+| Team/cloud graph sync | Git remote configured by user | No hosted control plane planned yet |
 
-### Lakehouse content fetch
+## Distribution
 
-| Capability | v0.1 | Backlog |
-|------------|------|---------|
-| `file://` reads | ✅ With allowlist | — |
-| `s3://` fetch | Metadata + snippet stub | `T-F2` |
-| `http(s)://` fetch | Metadata stub, **no network I/O** | `T-F1` |
-| Full Parquet analytics | Metadata MVP (magic, size, snippet) | PRD long-term |
-| Python `LakehouseReader` | ✅ Exposed and tested | — |
+- PyPI publishes abi3 wheels for supported platforms and Python 3.9-3.14.
+- GitHub releases publish CLI binaries and Python artifacts.
+- CI runs Rust formatting, Clippy, tests, coverage, benchmarks, wheel tests, CLI
+  smoke tests, and warning-free Rust API docs.
 
-See [`LAKEHOUSE.md`](./LAKEHOUSE.md) and [`PYTHON.md`](./PYTHON.md).
-
-### Performance
-
-| Capability | v0.1 | Backlog |
-|------------|------|---------|
-| In-memory adjacency | ✅ | — |
-| mmap adjacency (Phase 3.4) | Deferred | `T-F3` |
-| Traversal bench gate | &lt; 1 ms avg on basic fixture | `T-L3` for CI regression |
-
-See [`BENCHMARKS.md`](./BENCHMARKS.md).
-
-### Distribution
-
-| Capability | v0.1 | Backlog |
-|------------|------|---------|
-| GitHub release CLI binaries | ✅ On `v*` tags | — |
-| CI Python wheels (artifact) | ✅ | — |
-| PyPI publish | Not yet | `T-F5` |
-| docs.rs / published Rust API docs | Not yet | `D-9` |
-
-### Agent surfaces
-
-| Capability | v0.1 | Backlog |
-|------------|------|---------|
-| MCP read tools | ✅ Tested in smoke | — |
-| MCP CRUD tools | ✅ Generated and tested | — |
-| UI REST CRUD | ✅ Handlers and integration tests | — |
-| OpenAPI for UI API | Not yet | `D-10` |
-
----
-
-## Intentionally out of scope for v0.1
-
-- Multi-user auth on UI or MCP
-- Public bind for `maggraph ui` (loopback only)
-- Incremental index watch (full rescan)
-- Remote git credentials / credential helper integration beyond libgit2 defaults
-
----
-
-## Related docs
-
-| Doc | Purpose |
-|-----|---------|
-| [`BACKLOG.md`](./BACKLOG.md) | Trackable todos for gaps above |
-| [`TESTING.md`](./TESTING.md) | What is tested today |
-| [`PROGRESS.md`](./PROGRESS.md) | Phase completion history |
-| [`PRD.md`](../PRD.md) | Full product spec |
+See [`BACKLOG.md`](./BACKLOG.md) for prioritized work rather than using historical
+v0.1 checklist IDs as the active roadmap.

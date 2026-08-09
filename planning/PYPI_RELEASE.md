@@ -39,8 +39,8 @@ PyPI is automatic.
 
 # 2. Commit and tag
 git add python/pyproject.toml Cargo.toml
-git commit -m "chore: release v0.1.1"
-git tag v0.1.1
+git commit -m "chore: release vX.Y.Z"
+git tag vX.Y.Z
 git push origin main --tags
 ```
 
@@ -59,7 +59,7 @@ The package will appear at **https://pypi.org/project/maggraph/** within a few m
 ```bash
 # Install from PyPI in a fresh venv
 python -m venv /tmp/test-maggraph
-/tmp/test-maggraph/bin/pip install maggraph==0.1.1
+/tmp/test-maggraph/bin/pip install maggraph==X.Y.Z
 /tmp/test-maggraph/bin/python -c "
 import maggraph
 print(maggraph.__version__)

@@ -4,8 +4,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::error::{MagGraphError, Result};
 use crate::index::GraphIndex;
-use crate::node::Node;
-use crate::wikilink::extract_wikilink_targets;
 
 /// Edge direction: all edges are **outgoing** from source node to target node id.
 ///
@@ -20,7 +18,7 @@ pub struct GraphAdjacency {
 }
 
 impl GraphAdjacency {
-    /// Build adjacency by reading all nodes in the index.
+    /// Build adjacency from metadata and wikilinks cached in the index.
     pub fn from_index(index: &GraphIndex) -> Result<Self> {
         let mut outgoing: HashMap<String, Vec<String>> = HashMap::new();
         let mut unresolved: HashMap<String, Vec<String>> = HashMap::new();
@@ -28,9 +26,13 @@ impl GraphAdjacency {
         let id_set: HashSet<&str> = index.iter().map(|(id, _)| id).collect();
         let path_stem_to_id = build_path_stem_index(index);
 
-        for (id, _) in index.iter() {
-            let node = index.read_node(id)?;
-            let (targets, dangling) = collect_outgoing_targets(&node, &id_set, &path_stem_to_id);
+        for (id, entry) in index.iter() {
+            let (targets, dangling) = collect_outgoing_targets(
+                &entry.metadata.links,
+                &entry.wikilinks,
+                &id_set,
+                &path_stem_to_id,
+            );
             if !targets.is_empty() {
                 outgoing.insert(id.to_string(), targets);
             }
@@ -114,7 +116,8 @@ fn build_path_stem_index(index: &GraphIndex) -> HashMap<String, String> {
 }
 
 fn collect_outgoing_targets(
-    node: &Node,
+    frontmatter_links: &[String],
+    wikilinks: &[String],
     id_set: &HashSet<&str>,
     path_stem_to_id: &HashMap<String, String>,
 ) -> (Vec<String>, Vec<String>) {
@@ -140,12 +143,12 @@ fn collect_outgoing_targets(
         }
     };
 
-    for link in &node.metadata.links {
+    for link in frontmatter_links {
         consider(link);
     }
 
-    for target in extract_wikilink_targets(&node.body) {
-        consider(&target);
+    for target in wikilinks {
+        consider(target);
     }
 
     (resolved, dangling)

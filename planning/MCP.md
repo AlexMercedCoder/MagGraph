@@ -82,12 +82,11 @@ The GitHub Actions `python` job runs `maggraph scaffold --mcp` on the basic exam
 
 The MCP server runs locally over stdio with **no authentication**. It inherits the same trust model as the CLI: suitable for a single developer machine, not multi-tenant deployment. See [`SECURITY.md`](./SECURITY.md) for the full threat model (path traversal, future network fetch SSRF).
 
-## Testing & backlog
+## Testing
 
-| Coverage today | Gap (backlog ID) |
-|----------------|------------------|
-| Smoke: `list_nodes`, `get_node`, `traverse_graph` import | `T-H2` — `create_node`, `update_node`, `delete_node` untested |
-| Generated server wired to PyO3 | Regenerate after schema changes (`scaffold --mcp`) |
+The generated server is imported in the Python CI job. Pytest covers list, get,
+traverse, create, update, and delete operations against a temporary graph. Regenerate
+and rerun the scaffold suite whenever its schema or MagGraph Python contract changes.
 
 See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).
 

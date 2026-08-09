@@ -39,12 +39,17 @@ axum = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+tempfile.workspace = true
 
 [dev-dependencies]
-tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 
 [[bench]]
 name = "traversal"
 path = "benches/traversal.rs"
+harness = false
+
+[[bench]]
+name = "index_scale"
+path = "benches/index_scale.rs"
 harness = false

@@ -63,7 +63,6 @@ pub fn search_index(index: &GraphIndex, options: &QueryOptions) -> Result<Vec<Se
             }
         }
 
-        let node = index.read_node(id)?;
         let mut score = 0;
         let mut matched = Vec::new();
         if needle.is_empty() {
@@ -72,7 +71,7 @@ pub fn search_index(index: &GraphIndex, options: &QueryOptions) -> Result<Vec<Se
         } else {
             score += score_text(id, &needle, 30, "id", &mut matched);
             score += score_text(&entry.metadata.node_type, &needle, 12, "type", &mut matched);
-            score += score_text(&node.body, &needle, 6, "body", &mut matched);
+            score += score_text(entry.body(), &needle, 6, "body", &mut matched);
             for link in &entry.metadata.links {
                 score += score_text(link, &needle, 10, "links", &mut matched);
             }
@@ -98,7 +97,7 @@ pub fn search_index(index: &GraphIndex, options: &QueryOptions) -> Result<Vec<Se
             relative_path: entry.relative_path.display().to_string(),
             score,
             matched,
-            summary: summarize_body(&node),
+            summary: entry.summary.clone(),
             modified_unix,
         });
     }
@@ -139,8 +138,11 @@ pub fn is_suppressed(node: &Node) -> bool {
 }
 
 pub fn summarize_body(node: &Node) -> String {
-    node.body
-        .lines()
+    summarize_text(&node.body)
+}
+
+pub(crate) fn summarize_text(body: &str) -> String {
+    body.lines()
         .filter(|line| !line.trim().is_empty())
         .take(3)
         .collect::<Vec<_>>()

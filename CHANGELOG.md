@@ -4,6 +4,24 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-09
+
+### Added
+
+- Added MagAgent-facing Python behavioral contract tests for retrieval, incremental updates, memory schemas, lifecycle operations, and typed errors.
+- Added generated 1K/10K/100K index benchmarks covering open, search, backlinks, recall, and one-file refresh.
+- Added a current support matrix and replaced stale v0.1 audit, testing, benchmark, and backlog documentation.
+
+### Changed
+
+- Cached parsed bodies, summaries, and wikilinks in the in-memory index, eliminating repeated full filesystem scans during search, backlinks, traversal, and recall.
+- Made merge provenance cumulative and retries idempotent after an interrupted target-write/source-delete sequence.
+
+### Fixed
+
+- Made Markdown node replacement atomic using flushed same-directory temporary files.
+- Kept valid index state when disk deletion fails or an external one-file update is malformed.
+
 ## [0.2.5] - 2026-06-07
 
 ### Fixed
@@ -78,6 +96,7 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.3.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.3.0
 [0.2.5]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.5
 [0.2.4]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.4
 [0.2.3]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.3

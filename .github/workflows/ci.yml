@@ -77,6 +77,21 @@ jobs:
           fi
           echo "Benchmark OK: ${raw_us} µs/traversal"
 
+      - name: Run index scale benchmark
+        run: |
+          set -euo pipefail
+          MAGGRAPH_BENCH_SIZES=1000,10000 cargo bench -p maggraph --bench index_scale 2>&1 | tee -a target/benchmark.txt
+          row=$(awk -F, '$1 == "10000" { print; found=1 } END { if (!found) exit 1 }' target/benchmark.txt)
+          open_ms=$(printf '%s\n' "$row" | awk -F, '{ print int($2) }')
+          search_ms=$(printf '%s\n' "$row" | awk -F, '{ print int($3) }')
+          backlinks_ms=$(printf '%s\n' "$row" | awk -F, '{ print int($4) }')
+          update_us=$(printf '%s\n' "$row" | awk -F, '{ print int($6) }')
+          test "$open_ms" -lt 5000
+          test "$search_ms" -lt 500
+          test "$backlinks_ms" -lt 500
+          test "$update_us" -lt 50000
+          echo "Scale benchmark OK: $row"
+
       - name: Upload benchmark output
         uses: actions/upload-artifact@v4
         with:

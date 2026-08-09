@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use walkdir::WalkDir;
 
@@ -11,17 +12,25 @@ use crate::query::{changed_since, GraphChange, QueryOptions, SearchResult};
 use crate::recall::{recall_bundle, RecallBundle};
 use crate::security::validate_relative_node_path;
 use crate::sync::WritePolicy;
+use crate::wikilink::extract_wikilink_targets;
 
-/// Lightweight index entry for a graph node (metadata + path, no body).
+/// Parsed index entry used by graph, search, and retrieval operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeIndexEntry {
     pub metadata: NodeMetadata,
     pub relative_path: PathBuf,
+    pub(crate) body: Arc<str>,
+    pub(crate) summary: String,
+    pub(crate) wikilinks: Vec<String>,
 }
 
 impl NodeIndexEntry {
     pub fn id(&self) -> &str {
         &self.metadata.id
+    }
+
+    pub(crate) fn body(&self) -> &str {
+        &self.body
     }
 }
 
@@ -99,7 +108,7 @@ impl GraphIndex {
             }
 
             let node = Node::from_file(path, &self.root_path)?;
-            self.insert_entry(node.metadata, relative_path.to_path_buf())?;
+            self.insert_entry(node.metadata, relative_path.to_path_buf(), node.body)?;
         }
 
         Ok(())
@@ -158,17 +167,28 @@ impl GraphIndex {
             return Ok(None);
         }
 
-        if let Some(existing_id) = self.by_path.remove(&relative_path) {
-            self.by_id.remove(&existing_id);
-        }
-
         if !full_path.exists() {
+            if let Some(existing_id) = self.by_path.remove(&relative_path) {
+                self.by_id.remove(&existing_id);
+            }
             return Ok(None);
         }
 
         let node = Node::from_file(&full_path, &self.root_path)?;
         let id = node.id().to_string();
-        self.insert_entry(node.metadata, relative_path)?;
+        if let Some(existing) = self.by_id.get(&id) {
+            if existing.relative_path != relative_path {
+                return Err(MagGraphError::DuplicateNodeId {
+                    id,
+                    first: existing.relative_path.clone(),
+                    second: relative_path,
+                });
+            }
+        }
+        if let Some(existing_id) = self.by_path.remove(&relative_path) {
+            self.by_id.remove(&existing_id);
+        }
+        self.insert_entry(node.metadata, relative_path, node.body)?;
         Ok(Some(id))
     }
 
@@ -260,7 +280,11 @@ impl GraphIndex {
         }
 
         node.write_to(&self.root_path)?;
-        self.insert_entry(node.metadata.clone(), node.relative_path.clone())?;
+        self.insert_entry(
+            node.metadata.clone(),
+            node.relative_path.clone(),
+            node.body.clone(),
+        )?;
         Ok(node)
     }
 
@@ -298,6 +322,9 @@ impl GraphIndex {
             NodeIndexEntry {
                 metadata: node.metadata,
                 relative_path: node.relative_path,
+                summary: crate::query::summarize_text(&node.body),
+                wikilinks: extract_wikilink_targets(&node.body),
+                body: Arc::from(node.body),
             },
         );
         Ok(())
@@ -317,15 +344,17 @@ impl GraphIndex {
     fn delete_node_unchecked(&mut self, id: &str) -> Result<()> {
         let entry = self
             .by_id
-            .remove(id)
+            .get(id)
+            .cloned()
             .ok_or_else(|| MagGraphError::NodeNotFound { id: id.to_string() })?;
-
-        self.by_path.remove(&entry.relative_path);
 
         let path = self.root_path.join(&entry.relative_path);
         if path.exists() {
             fs::remove_file(&path).map_err(|source| MagGraphError::NodeDelete { path, source })?;
         }
+
+        self.by_id.remove(id);
+        self.by_path.remove(&entry.relative_path);
 
         Ok(())
     }
@@ -362,28 +391,55 @@ impl GraphIndex {
         }
         let mut target = self.read_node(target_id)?;
         let source = self.read_node(source_id)?;
-        if !target.body.ends_with('\n') {
-            target.body.push('\n');
-        }
-        target.body.push_str(&format!(
-            "\n---\n\n## Merged from `{}`\n\n{}",
-            source.id(),
-            source.body
-        ));
-        for link in source.metadata.links {
-            if link != target_id && !target.metadata.links.contains(&link) {
-                target.metadata.links.push(link);
+        let source_value = serde_yaml::Value::String(source_id.to_string());
+        let already_merged = target
+            .metadata
+            .extra
+            .get("merged_from")
+            .and_then(serde_yaml::Value::as_sequence)
+            .is_some_and(|values| values.contains(&source_value));
+        if !already_merged {
+            if !target.body.ends_with('\n') {
+                target.body.push('\n');
+            }
+            target.body.push_str(&format!(
+                "\n---\n\n## Merged from `{}`\n\n{}",
+                source.id(),
+                source.body
+            ));
+            for link in source.metadata.links {
+                if link != target_id && !target.metadata.links.contains(&link) {
+                    target.metadata.links.push(link);
+                }
             }
         }
-        target.metadata.extra.insert(
-            "merged_from".to_string(),
-            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(source_id.to_string())]),
-        );
+        let merged_from = target
+            .metadata
+            .extra
+            .entry("merged_from".to_string())
+            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
+        let provenance = match merged_from {
+            serde_yaml::Value::Sequence(values) => values,
+            _ => {
+                *merged_from = serde_yaml::Value::Sequence(Vec::new());
+                merged_from
+                    .as_sequence_mut()
+                    .expect("sequence inserted above")
+            }
+        };
+        if !provenance.contains(&source_value) {
+            provenance.push(source_value);
+        }
         self.update_node(target)?;
         self.delete_node(source_id)
     }
 
-    fn insert_entry(&mut self, metadata: NodeMetadata, relative_path: PathBuf) -> Result<()> {
+    fn insert_entry(
+        &mut self,
+        metadata: NodeMetadata,
+        relative_path: PathBuf,
+        body: String,
+    ) -> Result<()> {
         let id = metadata.id.clone();
 
         if let Some(existing) = self.by_id.get(&id) {
@@ -406,6 +462,9 @@ impl GraphIndex {
             NodeIndexEntry {
                 metadata,
                 relative_path: relative_path.clone(),
+                summary: crate::query::summarize_text(&body),
+                wikilinks: extract_wikilink_targets(&body),
+                body: Arc::from(body),
             },
         );
         self.by_path.insert(relative_path, id);
@@ -676,5 +735,124 @@ tags: ["agent"]
         assert_eq!(updated.as_deref(), Some("fresh"));
         assert!(index.contains("fresh"));
         assert!(!index.changed_since(0).is_empty());
+    }
+
+    #[test]
+    fn malformed_incremental_update_keeps_last_valid_index_state() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let mut index = GraphIndex::open(&root).expect("open index");
+
+        fs::write(root.join("welcome.md"), "# truncated without frontmatter")
+            .expect("write malformed external edit");
+        index
+            .update_file("welcome.md")
+            .expect_err("malformed update should fail");
+
+        assert!(index.contains("welcome"));
+        let results = index
+            .search(&QueryOptions {
+                text: Some("Welcome".into()),
+                ..QueryOptions::default()
+            })
+            .expect("cached index remains searchable");
+        assert_eq!(results[0].id, "welcome");
+    }
+
+    #[test]
+    fn failed_disk_delete_keeps_index_entry() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let mut index = GraphIndex::open(&root).expect("open index");
+        let path = root.join("getting_started.md");
+
+        fs::remove_file(&path).expect("remove fixture file");
+        fs::create_dir(&path).expect("replace file with directory");
+        let error = index
+            .delete_node("getting_started")
+            .expect_err("directory cannot be removed as a file");
+
+        assert!(error.to_string().contains("delete"));
+        assert!(index.contains("getting_started"));
+        assert_eq!(
+            index.get("getting_started").unwrap().relative_path,
+            PathBuf::from("getting_started.md")
+        );
+    }
+
+    #[test]
+    fn repeated_merges_preserve_all_provenance() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let mut index = GraphIndex::open(&root).expect("open index");
+        index
+            .create_node(NewNode {
+                metadata: NodeMetadata {
+                    id: "third".into(),
+                    node_type: "note".into(),
+                    source: None,
+                    links: vec![],
+                    extra: Default::default(),
+                },
+                body: "Third body\n".into(),
+                relative_path: PathBuf::from("third.md"),
+            })
+            .expect("create third node");
+
+        index
+            .merge_nodes("welcome", "getting_started")
+            .expect("first merge");
+        index.merge_nodes("welcome", "third").expect("second merge");
+
+        let merged = index.read_node("welcome").expect("merged target");
+        let provenance = merged
+            .metadata
+            .extra
+            .get("merged_from")
+            .and_then(serde_yaml::Value::as_sequence)
+            .expect("merged_from sequence");
+        assert_eq!(
+            provenance,
+            &vec![
+                serde_yaml::Value::String("getting_started".into()),
+                serde_yaml::Value::String("third".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn merge_retry_does_not_duplicate_already_recorded_source() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let mut index = GraphIndex::open(&root).expect("open index");
+        let source_body = index.read_node("getting_started").expect("source").body;
+        let mut target = index.read_node("welcome").expect("target");
+        target.body.push_str(&format!(
+            "\n---\n\n## Merged from `getting_started`\n\n{source_body}"
+        ));
+        target.metadata.extra.insert(
+            "merged_from".into(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("getting_started".into())]),
+        );
+        index
+            .update_node(target)
+            .expect("record interrupted merge state");
+
+        index
+            .merge_nodes("welcome", "getting_started")
+            .expect("retry merge");
+        let merged = index.read_node("welcome").expect("merged target");
+        assert_eq!(
+            merged
+                .body
+                .matches("## Merged from `getting_started`")
+                .count(),
+            1
+        );
+        assert!(!index.contains("getting_started"));
     }
 }

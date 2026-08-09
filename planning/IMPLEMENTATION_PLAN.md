@@ -1,5 +1,9 @@
 # MagGraph — Implementation Plan
 
+> Historical plan: phases 0-10 produced MagGraph 0.1. Current work is tracked in
+> [`BACKLOG.md`](./BACKLOG.md), with shipped behavior in
+> [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).
+
 Phased roadmap to implement the product described in [`PRD.md`](../PRD.md). Each phase lists **goals**, **tasks**, **deliverables**, and **acceptance criteria**. Update [`PROGRESS.md`](./PROGRESS.md) as tasks complete.
 
 ---

@@ -58,12 +58,14 @@ The browser UI loads nodes and edges from the API and supports viewing/editing m
 - State: `Arc<Mutex<GraphIndex>>` shared across handlers
 - CLI: `maggraph-cli` enables `maggraph/ui` by default
 
-## Testing & backlog
+## Testing And Contract
 
-| Coverage today | Gap (backlog ID) |
-|----------------|------------------|
-| `GET /api/nodes`, `GET /api/nodes/{id}` in `ui_integration.rs` | `T-H1` — POST/PATCH/DELETE, `GET /api/edges`, path traversal via API |
-| Loopback bind enforced at startup | UI has no auth — see [`SECURITY.md`](./SECURITY.md) |
-| — | `D-10` — OpenAPI / JSON schema for request bodies |
+Handler and integration tests cover node listing/detail, create/update/delete, edges,
+conflicts, missing nodes, path traversal, static assets, loopback enforcement, dry-run,
+and a live HTTP request. The machine-readable contract is
+[`docs/openapi.yaml`](../docs/openapi.yaml).
+
+The UI has no authentication and intentionally rejects non-loopback binds. See
+[`SECURITY.md`](./SECURITY.md).
 
 See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).

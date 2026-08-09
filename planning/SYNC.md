@@ -86,7 +86,8 @@ MagGraph uses **Git-native** merges:
 2. **Three-way merge** when both sides changed; libgit2 performs the merge and reports conflict paths.
 3. Conflicts must be resolved with standard Git tooling (`git status`, edit files, `git add`, commit).
 
-There is no custom merge driver for Markdown frontmatter in v0.1 — treat node files like any other text and resolve manually or with your Git workflow.
+There is no custom merge driver for Markdown frontmatter. Treat node files like any
+other text and resolve conflicts manually or with your normal Git workflow.
 
 ## Acceptance workflow (local bare remote)
 
@@ -105,12 +106,11 @@ maggraph sync pull --config follower/maggraph.toml
 
 Integration tests in `maggraph::sync::engine` cover leader push, follower pull, and follower write rejection.
 
-## Testing & backlog
+## Testing
 
-| Coverage today | Gap (backlog ID) |
-|----------------|------------------|
-| `SyncEngine` unit tests: follower write rejected, merge conflict in repo layer | `T-H4` — follower failed push/write not covered in CLI e2e |
-| E2E: leader push → follower pull → follower query | `T-M2` — follower `sync init` (clone) manual-only |
-| `merge_conflict_surfaces_paths` in `sync/repo.rs` | `T-M3` — no CLI test that `sync pull` prints conflict paths |
+Unit and CLI E2E tests cover leader push/follower pull, follower clone initialization,
+follower write and push rejection, repository merge conflicts, and conflict-path CLI
+output. Remote-host credentials and provider-specific Git authentication remain the
+user's Git/libgit2 configuration responsibility.
 
 See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).

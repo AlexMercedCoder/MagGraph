@@ -98,7 +98,8 @@ GitHub Actions job `python` (see `.github/workflows/ci.yml`):
 2. `maturin build --release` in `python/`
 3. `maturin develop` + `pytest`
 
-Wheels are built as CI artifacts; PyPI publish is deferred to Phase 10.
+Wheels are built and smoke-tested in CI. Tagged releases publish abi3 wheels to PyPI
+for the supported Python and platform matrix in [`SUPPORT_MATRIX.md`](./SUPPORT_MATRIX.md).
 
 ## MCP integration
 

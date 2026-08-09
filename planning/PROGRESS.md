@@ -1,5 +1,9 @@
 # MagGraph — Implementation Progress
 
+> Historical completion log for the 0.1 and 0.2 foundations. Current priorities live
+> in [`BACKLOG.md`](./BACKLOG.md) and current guarantees in
+> [`SUPPORT_MATRIX.md`](./SUPPORT_MATRIX.md).
+
 **Last updated:** 2026-06-06 (v0.2.0 agent retrieval release)  
 **Plan reference:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)  
 **Open work:** [`BACKLOG.md`](./BACKLOG.md) · **Testing:** [`TESTING.md`](./TESTING.md)
@@ -30,18 +34,11 @@ Update this file when starting or finishing tasks. Keep phase summaries in sync 
 backlinks, incremental index refresh, changed-since, typed memory helpers,
 suppress/merge primitives, recall bundles, Python bindings, and CLI search/recall.
 
-### Post-v0.1 backlog (v0.1.1+)
+### Current work
 
-Phases 0–10 are done. Remaining work from the [v0.1 audit](./BACKLOG.md) is tracked in [`BACKLOG.md`](./BACKLOG.md) with IDs (`T-H*`, `T-M*`, `D-*`, etc.). See also [`TESTING.md`](./TESTING.md) and [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).
-
-| Category | Open items (approx.) | Doc |
-|----------|----------------------|-----|
-| Testing (high) | 4 | `T-H1`–`T-H4` |
-| Testing (medium) | 5 | `T-M1`–`T-M5` |
-| Testing (low) | 3 | `T-L1`–`T-L3` |
-| Documentation | 3 open / 6 done in audit doc pass | `D-*` |
-| CI & quality | 2 | `C-L1`, `C-L2` |
-| Features (PRD follow-up) | 2 active, 3 deferred | `T-F*` |
+Phases 0-10 and the 0.2 retrieval release are historical milestones. The active 0.3
+hardening and retrieval work is tracked in [`BACKLOG.md`](./BACKLOG.md). See also
+[`TESTING.md`](./TESTING.md) and [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).
 
 ---
 
@@ -188,7 +185,7 @@ Phases 0–10 are done. Remaining work from the [v0.1 audit](./BACKLOG.md) is tr
 | Testing guide (`TESTING.md`) | ✅ |
 | Post-v0.1 backlog (`BACKLOG.md`) | ✅ |
 | PRD vs shipped (`IMPLEMENTATION_STATUS.md`) | ✅ |
-| Audit doc todos (D-8, D-9, D-10) | ⬜ | CONTRIBUTING, cargo doc, OpenAPI — see [`BACKLOG.md`](./BACKLOG.md) |
+| Historical audit docs (CONTRIBUTING, cargo doc, OpenAPI) | ✅ | Delivered after the original audit |
 
 ---
 

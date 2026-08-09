@@ -33,6 +33,7 @@ MagGraph is part of a local-first AI productivity stack:
 - [MagGraph](https://github.com/AlexMercedCoder/MagGraph) — Rust-powered Markdown graph memory, search, backlinks, recall bundles, and Python bindings.
 - [MagAgent](https://github.com/AlexMercedCoder/MagAgent) — terminal-native AI coding and productivity agent powered by MagGraph memory.
 - [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) — cross-platform desktop app for MagAgent projects, chat, configuration, memory, plugins, and local workbench views.
+- [Mag ecosystem roadmap](https://github.com/AlexMercedCoder/MagAgent/blob/main/ROADMAP.md) — coordinated direction for all three projects.
 
 ---
 
@@ -622,12 +623,12 @@ max_bytes = 10485760  # max cache size (10 MB)
 | Absolute URI (`s3://…`, `file://…`, `https://…`) | Used as-is |
 | Relative path (`churn_q2.parquet`) | Joined to the first `remote_sources` URI |
 
-**Supported resolvers (v0.1):**
+**Supported resolvers:**
 
 | Scheme | Behavior |
 |--------|----------|
 | `file://` | Reads file from disk; validates Parquet magic header |
-| `s3://` | Metadata + stub (no AWS SDK yet — real fetch coming in v0.2) |
+| `s3://` | Metadata stub (no AWS SDK or network fetch yet) |
 | `http(s)://` | Metadata stub only; SSRF host blocklist enforced |
 
 Register custom resolvers via `ResolverRegistry` for tests or private integrations.
@@ -839,7 +840,7 @@ MagGraph is designed for **local development** and **single-operator** use.
 |---------|------------|
 | **Node path traversal** | `validate_relative_node_path()` blocks `..`, absolute paths, and `.maggraph/` directory access on every create |
 | **`file://` reads** | `FileResolver` requires an allowlist derived from `[lakehouse].remote_sources`; paths are canonicalised and checked against allowed roots |
-| **HTTP SSRF** | HTTP/HTTPS resolvers are stubs in v0.1; `validate_http_uri_host()` blocks loopback, RFC1918, and link-local addresses |
+| **HTTP SSRF** | HTTP/HTTPS resolvers remain metadata-only; `validate_http_uri_host()` blocks loopback, RFC1918, and link-local addresses before any future fetch implementation |
 | **UI exposure** | Binds to loopback only; public-interface binding rejected at startup |
 | **Follower writes** | `[sync].role = "follower"` enforces read-only via `WritePolicy` at the engine level |
 
@@ -859,11 +860,12 @@ See [`planning/SECURITY.md`](./planning/SECURITY.md) for the full threat model.
 | **[planning/MCP.md](./planning/MCP.md)** | MCP server scaffold and tool reference |
 | **[planning/UI.md](./planning/UI.md)** | Embedded dashboard, REST API reference |
 | **[planning/SECURITY.md](./planning/SECURITY.md)** | Threat model and mitigations |
-| **[planning/BENCHMARKS.md](./planning/BENCHMARKS.md)** | Traversal latency benchmarks |
-| **[planning/TESTING.md](./planning/TESTING.md)** | Test layout, commands, coverage gaps |
-| **[planning/IMPLEMENTATION_STATUS.md](./planning/IMPLEMENTATION_STATUS.md)** | PRD vs v0.1 shipped behaviour |
-| **[planning/BACKLOG.md](./planning/BACKLOG.md)** | Post-v0.1 open work |
-| **[planning/PROGRESS.md](./planning/PROGRESS.md)** | Phase completion tracker |
+| **[planning/SUPPORT_MATRIX.md](./planning/SUPPORT_MATRIX.md)** | Current Rust, Python, CLI, UI, API, and platform guarantees |
+| **[planning/BENCHMARKS.md](./planning/BENCHMARKS.md)** | Traversal and 1K/10K/100K index benchmarks |
+| **[planning/TESTING.md](./planning/TESTING.md)** | Current test layout, commands, and durability coverage |
+| **[planning/IMPLEMENTATION_STATUS.md](./planning/IMPLEMENTATION_STATUS.md)** | Current PRD-to-implementation status |
+| **[planning/BACKLOG.md](./planning/BACKLOG.md)** | Active 0.3 and retrieval roadmap |
+| **[planning/PROGRESS.md](./planning/PROGRESS.md)** | Historical phase completion tracker |
 | **[planning/PYPI_RELEASE.md](./planning/PYPI_RELEASE.md)** | PyPI Trusted Publishing setup and release workflow |
 | **[docs/openapi.yaml](./docs/openapi.yaml)** | OpenAPI 3.1 spec for the REST API |
 | **[CONTRIBUTING.md](./CONTRIBUTING.md)** | Dev setup, test commands, PR guidelines |

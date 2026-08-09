@@ -1,6 +1,7 @@
-# MagGraph — Security (v0.1)
+# MagGraph Security
 
-Threat model and mitigations for the local-first graph engine. This is an MVP review for v0.1; re-evaluate before enabling network fetches or multi-user deployments.
+Threat model and mitigations for the local-first graph engine. Last reviewed
+2026-08-09; re-evaluate before enabling network fetches or multi-user deployments.
 
 ## Path traversal (node CRUD)
 
@@ -28,7 +29,7 @@ Threat model and mitigations for the local-first graph engine. This is an MVP re
 
 **Risk:** When HTTP fetching is enabled, `source` URIs could target internal services (`127.0.0.1`, RFC1918, link-local).
 
-**Mitigations (v0.1):**
+**Mitigations:**
 
 - HTTP/HTTPS resolvers are **stubs** — no outbound network I/O.
 - `validate_http_uri_host()` blocks loopback, private, link-local, and `.local` hosts at URI resolution time (defense in depth for future fetch implementation).
@@ -41,7 +42,7 @@ Threat model and mitigations for the local-first graph engine. This is an MVP re
 **Mitigations:**
 
 - `maggraph ui` binds to loopback only (`127.0.0.1` / `::1`); public addresses are rejected.
-- No authentication in v0.1 — intended for single-user local audit only.
+- No authentication; the UI is intended for single-user local access only.
 
 ## Git sync
 
@@ -56,19 +57,19 @@ Threat model and mitigations for the local-first graph engine. This is an MVP re
 
 | Mitigation | Automated test |
 |------------|------------------|
-| Path traversal on node paths | `maggraph::security` unit tests; `GraphIndex::create_node_rejects_path_traversal` |
+| Path traversal on node paths | Security/index unit tests and UI REST path-traversal integration |
 | file:// allowlist | Lakehouse `FileResolver` unit tests |
 | HTTP host blocklist | `validate_http_uri_host` unit tests |
 | UI loopback bind | UI startup validation tests |
 | Follower read-only | `SyncEngine` / `WritePolicy` unit tests |
 
-## Backlog (security-related)
+## Remaining Security Work
 
-| ID | Item |
-|----|------|
-| `T-H1` | Path traversal rejection via UI REST API (today: index-level only) |
-| `T-F1` | SSRF integration tests when HTTP(S) fetch is enabled |
-| MCP / UI | No auth in v0.1 — documented in [`MCP.md`](./MCP.md), [`UI.md`](./UI.md) |
+- Add SSRF, redirect, credential, size, and timeout integration tests before enabling
+  real HTTP(S) fetch.
+- Keep MCP stdio and the embedded UI local-only; neither is a multi-user authenticated
+  service.
+- Add Windows locked-file tests for atomic replacement and deletion behavior.
 
 See [`BACKLOG.md`](./BACKLOG.md) and [`TESTING.md`](./TESTING.md).
 
