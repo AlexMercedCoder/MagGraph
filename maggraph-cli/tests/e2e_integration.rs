@@ -420,9 +420,13 @@ fn sync_pull_prints_conflict_paths() {
     let combined = format!("{stdout}{stderr}");
 
     // Either the pull succeeded cleanly (unlikely with diverged histories) or
-    // the conflict was surfaced. Either way, the command must not panic.
+    // Git surfaced a content/worktree conflict. Exact libgit2 wording varies
+    // with timing and whether the local edit is classified before merge.
     assert!(
-        output.status.success() || combined.contains("conflict") || combined.contains("welcome"),
+        output.status.success()
+            || combined.contains("conflict")
+            || combined.contains("welcome")
+            || combined.contains("would be overwritten by merge"),
         "expected success or conflict report, got status={} stdout={stdout} stderr={stderr}",
         output.status
     );
