@@ -4,6 +4,12 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-08-09
+
+### Fixed
+
+- Synchronized `maggraph.__version__` with the published distribution version and added a regression test against installed package metadata.
+
 ## [0.4.0] - 2026-08-09
 
 ### Added
@@ -114,6 +120,7 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.4.1]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.4.1
 [0.4.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.4.0
 [0.3.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.3.0
 [0.2.5]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.2.5

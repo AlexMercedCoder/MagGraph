@@ -27,7 +27,7 @@ Install the published Python package and FastMCP in an isolated environment:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-python -m pip install "maggraph>=0.4.0"
+python -m pip install "maggraph>=0.4.1"
 pip install -r /path/to/your/graph/mcp_server/requirements.txt
 ```
 

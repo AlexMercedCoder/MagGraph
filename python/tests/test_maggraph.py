@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from importlib.metadata import version
 from pathlib import Path
 
 import maggraph
@@ -11,6 +12,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BASIC_CONFIG = REPO_ROOT / "examples" / "basic" / "maggraph.toml"
 BASIC_GRAPH = REPO_ROOT / "examples" / "basic" / "knowledge_graph"
+
+
+def test_package_version_matches_distribution_metadata() -> None:
+    assert maggraph.__version__ == version("maggraph")
 
 
 def test_load_config_resolves_root_path() -> None:
