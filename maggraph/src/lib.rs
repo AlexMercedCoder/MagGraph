@@ -32,7 +32,7 @@ pub use error::{MagGraphError, Result};
 pub use graph::{
     resolve_target, traverse, GraphAdjacency, TraversalNode, TraversalOrder, TraversalResult,
 };
-pub use index::{GraphIndex, NodeIndexEntry};
+pub use index::{GraphIndex, NodeIndexEntry, SkippedFile};
 pub use lakehouse::{
     ContentCache, ContentResolver, FileResolver, HttpResolver, LakehouseReader, NodeWithContent,
     ResolvedContent, ResolverRegistry, S3StubResolver,

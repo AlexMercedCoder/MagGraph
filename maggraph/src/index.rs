@@ -36,12 +36,39 @@ impl NodeIndexEntry {
     }
 }
 
+/// File names (matched case-insensitively) that are commonly documentation rather
+/// than graph nodes. When one of these files does not parse as a node it is skipped
+/// and reported through [`GraphIndex::skipped_files`] instead of failing the scan.
+/// A file with one of these names that *is* a valid node is still indexed.
+pub const NON_NODE_FILE_NAMES: &[&str] = &["SKILL.md", "README.md", "AGENTS.md", "CLAUDE.md"];
+
+/// A markdown file under the graph root that the scan skipped because it is not a node.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkippedFile {
+    /// Path relative to the graph root.
+    pub relative_path: PathBuf,
+    /// Why the file was not indexed (the node parse error).
+    pub reason: String,
+}
+
+/// Whether `path` has one of the [`NON_NODE_FILE_NAMES`].
+pub fn is_non_node_file_name(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            NON_NODE_FILE_NAMES
+                .iter()
+                .any(|reserved| reserved.eq_ignore_ascii_case(name))
+        })
+}
+
 /// In-memory index of markdown nodes under a graph root.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphIndex {
     root_path: PathBuf,
     by_id: HashMap<String, NodeIndexEntry>,
     by_path: HashMap<PathBuf, String>,
+    skipped: Vec<SkippedFile>,
 }
 
 impl GraphIndex {
@@ -71,6 +98,7 @@ impl GraphIndex {
             root_path,
             by_id: HashMap::new(),
             by_path: HashMap::new(),
+            skipped: Vec::new(),
         };
         index.rescan()?;
         Ok(index)
@@ -80,6 +108,7 @@ impl GraphIndex {
     pub fn rescan(&mut self) -> Result<()> {
         self.by_id.clear();
         self.by_path.clear();
+        self.skipped.clear();
 
         for entry in WalkDir::new(&self.root_path)
             .follow_links(false)
@@ -111,11 +140,37 @@ impl GraphIndex {
                 continue;
             }
 
-            let node = Node::from_file(path, &self.root_path)?;
+            let node = match Node::from_file(path, &self.root_path) {
+                Ok(node) => node,
+                Err(MagGraphError::NodeParse { message, .. })
+                    if is_non_node_file_name(relative_path) =>
+                {
+                    tracing::warn!(
+                        path = %relative_path.display(),
+                        reason = %message,
+                        "skipping non-node markdown file"
+                    );
+                    self.skipped.push(SkippedFile {
+                        relative_path: relative_path.to_path_buf(),
+                        reason: message,
+                    });
+                    continue;
+                }
+                Err(err) => return Err(err),
+            };
             self.insert_entry(node.metadata, relative_path.to_path_buf(), node.body)?;
         }
 
+        self.skipped
+            .sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
         Ok(())
+    }
+
+    /// Markdown files the last full scan skipped because they are documentation
+    /// (see [`NON_NODE_FILE_NAMES`]) that does not parse as a node, such as a
+    /// generated `SKILL.md` or a `README.md` without node frontmatter.
+    pub fn skipped_files(&self) -> &[SkippedFile] {
+        &self.skipped
     }
 
     pub fn root_path(&self) -> &Path {
@@ -175,10 +230,28 @@ impl GraphIndex {
             if let Some(existing_id) = self.by_path.remove(&relative_path) {
                 self.by_id.remove(&existing_id);
             }
+            self.skipped.retain(|s| s.relative_path != relative_path);
             return Ok(None);
         }
 
-        let node = Node::from_file(&full_path, &self.root_path)?;
+        let node = match Node::from_file(&full_path, &self.root_path) {
+            Ok(node) => node,
+            Err(MagGraphError::NodeParse { message, .. })
+                if is_non_node_file_name(&relative_path) =>
+            {
+                if let Some(existing_id) = self.by_path.remove(&relative_path) {
+                    self.by_id.remove(&existing_id);
+                }
+                self.skipped.retain(|s| s.relative_path != relative_path);
+                self.skipped.push(SkippedFile {
+                    relative_path,
+                    reason: message,
+                });
+                return Ok(None);
+            }
+            Err(err) => return Err(err),
+        };
+        self.skipped.retain(|s| s.relative_path != relative_path);
         let id = node.id().to_string();
         if let Some(existing) = self.by_id.get(&id) {
             if existing.relative_path != relative_path {
@@ -613,6 +686,71 @@ links: ["welcome"]
         index.delete_node("customer_churn_q2").expect("delete");
         assert!(index.is_empty());
         assert!(!root.join("customer_churn_q2.md").exists());
+    }
+
+    #[test]
+    fn scan_skips_and_reports_documentation_files_that_are_not_nodes() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        // A generated SKILL.md has frontmatter but no `id`; a README has none at all.
+        fs::write(
+            root.join("SKILL.md"),
+            "---\nmaggraph_skill_version: \"0.4.1\"\nnode_count: 2\n---\n\n# Skill\n",
+        )
+        .expect("write skill");
+        fs::create_dir_all(root.join("docs")).expect("docs dir");
+        fs::write(root.join("docs/readme.md"), "# Notes about this graph\n").expect("readme");
+
+        let mut index = GraphIndex::open(&root).expect("open index despite non-node files");
+        assert_eq!(index.len(), 2);
+        let skipped: Vec<_> = index
+            .skipped_files()
+            .iter()
+            .map(|s| s.relative_path.clone())
+            .collect();
+        assert_eq!(
+            skipped,
+            vec![PathBuf::from("SKILL.md"), PathBuf::from("docs/readme.md")]
+        );
+        assert!(index.skipped_files()[0].reason.contains("id"));
+
+        // Incremental refresh of a skipped file is a no-op rather than an error.
+        assert_eq!(index.update_file("SKILL.md").expect("refresh skill"), None);
+        assert_eq!(index.skipped_files().len(), 2);
+        fs::remove_file(root.join("SKILL.md")).expect("remove skill");
+        assert_eq!(
+            index.update_file("SKILL.md").expect("refresh removed"),
+            None
+        );
+        assert_eq!(index.skipped_files().len(), 1);
+    }
+
+    #[test]
+    fn readme_that_is_a_valid_node_is_still_indexed() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        fs::write(
+            root.join("README.md"),
+            "---\nid: graph_readme\ntype: note\n---\n\n# Readme node\n",
+        )
+        .expect("write readme");
+
+        let index = GraphIndex::open(&root).expect("open index");
+        assert!(index.contains("graph_readme"));
+        assert!(index.skipped_files().is_empty());
+    }
+
+    #[test]
+    fn ordinary_malformed_node_still_fails_the_scan() {
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        fs::write(root.join("broken.md"), "---\ntype: note\n---\n\nNo id\n").expect("write");
+
+        let err = GraphIndex::open(&root).expect_err("malformed node must fail");
+        assert!(matches!(err, MagGraphError::NodeParse { .. }));
     }
 
     #[test]

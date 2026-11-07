@@ -4,6 +4,16 @@ All notable changes to MagGraph are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Added `GraphIndex::skipped_files()` to report documentation files the scan skipped.
+
+### Fixed
+
+- The index no longer fails to open when the graph root contains a `SKILL.md`, `README.md`, `AGENTS.md`, or `CLAUDE.md` that is not a node (for example a `SKILL.md` written by `scaffold --skill` in 0.4.1). Such files are skipped and reported; files with those names that are valid nodes are still indexed, and other malformed nodes still fail the scan.
+
 ## [0.4.1] - 2026-08-09
 
 ### Fixed
