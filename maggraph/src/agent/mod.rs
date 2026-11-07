@@ -203,8 +203,62 @@ pub struct SkillRenderContext<'a> {
     pub maggraph_version: &'a str,
 }
 
+/// Options shared by the `SKILL.md` and MCP scaffold generators.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ScaffoldOptions {
+    /// Generate a read-only MCP server: omit the `create_node`, `update_node`, and
+    /// `delete_node` tools (and leave them out of the generated docs).
+    pub read_only: bool,
+}
+
+impl ScaffoldOptions {
+    /// Options for a read-only scaffold.
+    pub fn read_only() -> Self {
+        Self { read_only: true }
+    }
+}
+
+/// Default directory name, under the scaffold output directory, that holds `SKILL.md`.
+pub const SKILL_DIR_NAME: &str = "maggraph-skill";
+
+/// `requirements.txt` line for the published `maggraph` Python bindings, pinned to
+/// this crate's compatible release range (same minor for 0.x, same major after 1.0).
+pub fn maggraph_python_requirement() -> String {
+    let major: u64 = env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(0);
+    let minor: u64 = env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0);
+    if major == 0 {
+        format!(
+            "maggraph>={major}.{minor},<{major}.{next}",
+            next = minor + 1
+        )
+    } else {
+        format!("maggraph>={major}.{minor},<{next}", next = major + 1)
+    }
+}
+
+const READ_TOOLS_TABLE: &str = "| `list_nodes` | All indexed node ids |
+| `get_node` | Node metadata + body as Markdown |
+| `traverse_graph` | BFS/DFS traversal Markdown report |
+";
+
+const WRITE_TOOLS_TABLE: &str =
+    "| `create_node` | Create a new markdown node (optional write policy) |
+| `update_node` | Update node body/frontmatter |
+| `delete_node` | Remove a node from the index |
+";
+
 /// Render `SKILL.md` content from schema and context.
 pub fn render_skill_md(schema: &GraphSchema, ctx: &SkillRenderContext<'_>) -> String {
+    render_skill_md_with(schema, ctx, ScaffoldOptions::default())
+}
+
+/// Render `SKILL.md` content from schema, context, and scaffold options.
+pub fn render_skill_md_with(
+    schema: &GraphSchema,
+    ctx: &SkillRenderContext<'_>,
+    options: ScaffoldOptions,
+) -> String {
     let config_line = ctx
         .config_path
         .map(|p| format!("config: \"{}\"\n", p.display()))
@@ -340,25 +394,21 @@ Async: `read_node_async`, `traverse_async` (see `planning/PYTHON.md`).
 
 ## MCP server
 
-When `mcp_server/` exists:
+When `mcp_server/` exists in the scaffold output directory (next to this skill's
+`{skill_dir}/` directory), run from that output directory:
 
 ```bash
-pip install -r mcp_server/requirements.txt
-# Install maggraph from repo: cd python && maturin develop --release --features python-ext
+pip install -r mcp_server/requirements.txt   # fastmcp + maggraph from PyPI
 export MAGGRAPH_CONFIG="{config_display}"
 python mcp_server/server.py
 ```
 
+{server_mode}
+
 | Tool | Description |
 |------|-------------|
-| `list_nodes` | All indexed node ids |
-| `get_node` | Node metadata + body as Markdown |
-| `traverse_graph` | BFS/DFS traversal Markdown report |
-| `create_node` | Create a new markdown node (optional write policy) |
-| `update_node` | Update node body/frontmatter |
-| `delete_node` | Remove a node from the index |
-
-Regenerate when the graph schema changes: `maggraph scaffold --mcp --skill`.
+{tools_table}
+Regenerate when the graph schema changes: `maggraph scaffold --mcp --skill{read_only_flag}`.
 "#,
         version = ctx.maggraph_version,
         root = ctx.graph_root.display(),
@@ -377,7 +427,27 @@ Regenerate when the graph schema changes: `maggraph scaffold --mcp --skill`.
             .config_path
             .map(|p| p.display().to_string())
             .unwrap_or_else(|| "maggraph.toml".to_string()),
+        skill_dir = SKILL_DIR_NAME,
+        server_mode = if options.read_only {
+            "The server is **read-only**: it was generated with `--read-only`, so it exposes no create, update, or delete tools."
+        } else {
+            "The server is read-write. Regenerate with `--read-only` to omit the create, update, and delete tools."
+        },
+        tools_table = tools_table(options),
+        read_only_flag = if options.read_only {
+            " --read-only"
+        } else {
+            ""
+        },
     )
+}
+
+fn tools_table(options: ScaffoldOptions) -> String {
+    if options.read_only {
+        READ_TOOLS_TABLE.to_string()
+    } else {
+        format!("{READ_TOOLS_TABLE}{WRITE_TOOLS_TABLE}")
+    }
 }
 
 /// Context for MCP scaffold generation.
@@ -390,6 +460,15 @@ pub struct McpScaffoldContext<'a> {
 
 /// Write FastMCP server scaffold wired to the `maggraph` Python package.
 pub fn write_mcp_scaffold(dir: &Path, ctx: &McpScaffoldContext<'_>) -> Result<()> {
+    write_mcp_scaffold_with(dir, ctx, ScaffoldOptions::default())
+}
+
+/// Write FastMCP server scaffold with options (for example a read-only server).
+pub fn write_mcp_scaffold_with(
+    dir: &Path,
+    ctx: &McpScaffoldContext<'_>,
+    options: ScaffoldOptions,
+) -> Result<()> {
     fs::create_dir_all(dir).map_err(|e| io_error(format!("create {}: {e}", dir.display())))?;
 
     let schema = ctx.schema;
@@ -441,28 +520,27 @@ Generated by `maggraph scaffold --mcp`. Uses the `maggraph` Python bindings (PyO
 ## Setup
 
 ```bash
-# From the MagGraph repository root (if maggraph is not on PyPI yet):
-cd python && maturin develop --release --features python-ext
-
+# Installs fastmcp and the published maggraph bindings from PyPI.
 pip install -r mcp_server/requirements.txt
 export MAGGRAPH_CONFIG="{config}"
 python mcp_server/server.py
 ```
 
+To run against a MagGraph source checkout instead of the PyPI release, install the
+bindings from the repository's `python/` directory first
+(`pip install maturin && maturin develop --release --features python-ext`) and drop
+the `maggraph` line from `requirements.txt`.
+
 ## Tools
+
+{server_mode}
 
 | Tool | Description |
 |------|-------------|
-| `list_nodes` | List indexed node ids |
-| `get_node` | Read node Markdown (metadata + body) |
-| `traverse_graph` | BFS/DFS traversal report |
-| `create_node` | Create a new node (id, type, body) |
-| `update_node` | Update node body |
-| `delete_node` | Delete a node by id |
+{tools_table}
+See `planning/MCP.md` in the MagGraph repository for deployment (stdio, Cursor, CI).
 
-See [`planning/MCP.md`](../../planning/MCP.md) for deployment (stdio, Cursor, CI).
-
-Regenerate when the graph changes: `maggraph scaffold --mcp --skill`.
+Regenerate when the graph changes: `maggraph scaffold --mcp --skill{read_only_flag}`.
 "#,
         config = ctx.config_path.display(),
         root = ctx.graph_root.display(),
@@ -474,11 +552,28 @@ Regenerate when the graph changes: `maggraph scaffold --mcp --skill`.
         } else {
             ids_sample
         },
+        server_mode = if options.read_only {
+            "Read-only server (generated with `--read-only`): no create, update, or delete tools."
+        } else {
+            "Read-write server. Regenerate with `--read-only` to omit the create, update, and delete tools."
+        },
+        tools_table = tools_table(options),
+        read_only_flag = if options.read_only {
+            " --read-only"
+        } else {
+            ""
+        },
     );
 
-    let requirements = r#"fastmcp>=2.0
-# maggraph: install from repo - cd python && maturin develop --release --features python-ext
-"#;
+    let requirements = format!(
+        "fastmcp>=2.0
+{maggraph_req}
+# maggraph is the MagGraph Python bindings package on PyPI (https://pypi.org/project/maggraph/).
+# To use a source checkout instead, remove the line above and run, from the MagGraph
+# repository's python/ directory: maturin develop --release --features python-ext
+",
+        maggraph_req = maggraph_python_requirement(),
+    );
 
     let server_py = format!(
         r##"# MagGraph FastMCP server - wired to maggraph Python bindings.
@@ -497,6 +592,8 @@ CONFIG_PATH = os.environ.get("MAGGRAPH_CONFIG", r"{config}")
 GRAPH_ROOT = r"{root}"
 NODE_TYPES = {node_types:?}
 KNOWN_NODE_IDS = {node_ids:?}
+# True when generated with `maggraph scaffold --read-only` (write tools omitted).
+READ_ONLY = {read_only}
 
 
 @lru_cache(maxsize=1)
@@ -527,33 +624,7 @@ def traverse_graph(from_id: str, depth: int = 2, order: str = "bfs") -> str:
     idx = _index()
     result = idx.traverse(from_id, depth, order)
     return result.to_markdown(idx)
-
-
-@mcp.tool
-def create_node(
-    node_id: str,
-    node_type: str = "note",
-    body: str = "",
-    links: list[str] | None = None,
-) -> str:
-    """Create a new markdown node. Requires write access (local or sync leader with lock)."""
-    _index().create_node(node_id, node_type, body, links)
-    return f"created node {{node_id!r}}"
-
-
-@mcp.tool
-def update_node(node_id: str, body: str) -> str:
-    """Replace a node's Markdown body (frontmatter preserved)."""
-    _index().update_node(node_id, body)
-    return f"updated node {{node_id!r}}"
-
-
-@mcp.tool
-def delete_node(node_id: str) -> str:
-    """Delete a node by id."""
-    _index().delete_node(node_id)
-    return f"deleted node {{node_id!r}}"
-
+{write_tools}
 
 if __name__ == "__main__":
     mcp.run()
@@ -562,6 +633,12 @@ if __name__ == "__main__":
         root = ctx.graph_root.display(),
         node_types = schema.node_types,
         node_ids = schema.node_ids,
+        read_only = if options.read_only { "True" } else { "False" },
+        write_tools = if options.read_only {
+            ""
+        } else {
+            WRITE_TOOLS_PY
+        },
     );
 
     fs::write(dir.join("README.md"), readme)
@@ -574,13 +651,53 @@ if __name__ == "__main__":
     Ok(())
 }
 
+/// FastMCP write tools appended to `server.py` unless the scaffold is read-only.
+const WRITE_TOOLS_PY: &str = r#"
+
+@mcp.tool
+def create_node(
+    node_id: str,
+    node_type: str = "note",
+    body: str = "",
+    links: list[str] | None = None,
+) -> str:
+    """Create a new markdown node. Requires write access (local or sync leader with lock)."""
+    _index().create_node(node_id, node_type, body, links)
+    return f"created node {node_id!r}"
+
+
+@mcp.tool
+def update_node(node_id: str, body: str) -> str:
+    """Replace a node's Markdown body (frontmatter preserved)."""
+    _index().update_node(node_id, body)
+    return f"updated node {node_id!r}"
+
+
+@mcp.tool
+def delete_node(node_id: str) -> str:
+    """Delete a node by id."""
+    _index().delete_node(node_id)
+    return f"deleted node {node_id!r}"
+
+"#;
+
 /// Write `SKILL.md` to `path`.
 pub fn write_skill_md(
     path: &Path,
     schema: &GraphSchema,
     ctx: &SkillRenderContext<'_>,
 ) -> Result<()> {
-    let content = render_skill_md(schema, ctx);
+    write_skill_md_with(path, schema, ctx, ScaffoldOptions::default())
+}
+
+/// Write `SKILL.md` to `path` using scaffold options.
+pub fn write_skill_md_with(
+    path: &Path,
+    schema: &GraphSchema,
+    ctx: &SkillRenderContext<'_>,
+    options: ScaffoldOptions,
+) -> Result<()> {
+    let content = render_skill_md_with(schema, ctx, options);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| io_error(format!("create {}: {e}", parent.display())))?;
@@ -649,5 +766,77 @@ mod tests {
         assert!(server.contains("import maggraph"));
         assert!(server.contains("def traverse_graph"));
         assert!(server.contains("def create_node"));
+        assert!(server.contains("def delete_node"));
+        assert!(server.contains("READ_ONLY = False"));
+        assert!(server.contains("return f\"created node {node_id!r}\""));
+    }
+
+    fn basic_schema() -> (PathBuf, GraphSchema) {
+        let root =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../examples/basic/knowledge_graph");
+        let index = GraphIndex::open(&root).expect("open");
+        let schema = GraphSchema::introspect(&index).expect("introspect");
+        (root, schema)
+    }
+
+    #[test]
+    fn read_only_mcp_scaffold_omits_write_tools() {
+        let (root, schema) = basic_schema();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mcp_dir = tmp.path().join("mcp_server");
+        let ctx = McpScaffoldContext {
+            graph_root: &root,
+            config_path: Path::new("maggraph.toml"),
+            schema: &schema,
+        };
+        write_mcp_scaffold_with(&mcp_dir, &ctx, ScaffoldOptions::read_only()).expect("write");
+        let server = fs::read_to_string(mcp_dir.join("server.py")).expect("server");
+        assert!(server.contains("def traverse_graph"));
+        assert!(server.contains("READ_ONLY = True"));
+        assert!(!server.contains("create_node"));
+        assert!(!server.contains("update_node"));
+        assert!(!server.contains("delete_node"));
+        let readme = fs::read_to_string(mcp_dir.join("README.md")).expect("readme");
+        assert!(!readme.contains("`delete_node`"));
+    }
+
+    #[test]
+    fn read_only_skill_omits_write_tools() {
+        let (root, schema) = basic_schema();
+        let ctx = SkillRenderContext {
+            graph_root: &root,
+            config_path: Some(Path::new("maggraph.toml")),
+            storage_mode: Some("local"),
+            maggraph_version: "0.4.1",
+        };
+        let rw = render_skill_md(&schema, &ctx);
+        assert!(rw.contains("`create_node`"));
+        let ro = render_skill_md_with(&schema, &ctx, ScaffoldOptions::read_only());
+        assert!(ro.contains("`traverse_graph`"));
+        assert!(!ro.contains("`create_node`"));
+        assert!(ro.contains("maggraph scaffold --mcp --skill --read-only"));
+    }
+
+    #[test]
+    fn requirements_pin_published_bindings_to_compatible_range() {
+        let req = maggraph_python_requirement();
+        let major = env!("CARGO_PKG_VERSION_MAJOR");
+        let minor = env!("CARGO_PKG_VERSION_MINOR");
+        assert!(
+            req.starts_with(&format!("maggraph>={major}.{minor},<")),
+            "{req}"
+        );
+
+        let (root, schema) = basic_schema();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let ctx = McpScaffoldContext {
+            graph_root: &root,
+            config_path: Path::new("maggraph.toml"),
+            schema: &schema,
+        };
+        write_mcp_scaffold(tmp.path(), &ctx).expect("write");
+        let requirements = fs::read_to_string(tmp.path().join("requirements.txt")).expect("req");
+        assert!(requirements.lines().any(|line| line == req));
+        assert!(requirements.contains("pypi.org/project/maggraph"));
     }
 }

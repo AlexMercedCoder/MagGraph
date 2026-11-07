@@ -8,7 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Added `maggraph scaffold --read-only`, which generates an MCP server without the `create_node`, `update_node`, and `delete_node` tools, and documents only the read tools in the generated README and `SKILL.md`.
 - Added `GraphIndex::skipped_files()` to report documentation files the scan skipped.
+
+### Changed
+
+- `maggraph scaffold --skill` now writes `SKILL.md` to `<output>/maggraph-skill/SKILL.md` instead of the graph root, matching the README layout.
+- The generated `mcp_server/requirements.txt` now installs the published `maggraph` bindings from PyPI (compatible release range) instead of telling users to build from source; the generated README explains how to use a source checkout instead.
 
 ### Fixed
 

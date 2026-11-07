@@ -18,8 +18,10 @@ pub mod ui;
 pub mod wikilink;
 
 pub use agent::{
-    render_skill_md, write_mcp_scaffold, write_skill_md, EdgePattern, EdgeSource, GraphSchema,
-    McpScaffoldContext, SchemaEdge, SkillRenderContext,
+    maggraph_python_requirement, render_skill_md, render_skill_md_with, write_mcp_scaffold,
+    write_mcp_scaffold_with, write_skill_md, write_skill_md_with, EdgePattern, EdgeSource,
+    GraphSchema, McpScaffoldContext, ScaffoldOptions, SchemaEdge, SkillRenderContext,
+    SKILL_DIR_NAME,
 };
 pub use batch::{
     apply_memory_batch, validate_memory_batch, MemoryBatchOperation, MemoryBatchResult,

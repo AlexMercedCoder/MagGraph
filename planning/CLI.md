@@ -61,8 +61,9 @@ maggraph scaffold --mcp --skill --config examples/basic/maggraph.toml
 | Flag | Description |
 |------|-------------|
 | `--mcp` | Write `mcp_server/` (FastMCP server wired to `maggraph` Python package) under `--output` |
-| `--skill` | Write `SKILL.md` into the graph root (schema introspection + operations) |
-| `--output` | Directory for MCP output (default: `.`) |
+| `--skill` | Write `<output>/maggraph-skill/SKILL.md` (schema introspection + operations) |
+| `--read-only` | Omit `create_node`, `update_node`, and `delete_node` from the generated server |
+| `--output` | Directory for generated artifacts (default: `.`) |
 
 See [MCP.md](./MCP.md) for deployment.
 

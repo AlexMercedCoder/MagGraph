@@ -549,6 +549,7 @@ maggraph init --config maggraph.toml
 maggraph init --git --config maggraph.toml
 
 # Also write a SKILL.md agent manual into the graph root
+# (the index skips it; `scaffold --skill` writes it outside the graph instead)
 maggraph init --skill --config maggraph.toml
 ```
 
@@ -560,15 +561,20 @@ Generate agent-facing artifacts from your graph's schema:
 maggraph scaffold \
   --mcp \
   --skill \
-  --output ./agent_artifacts \
+  --output ./agent \
   --config maggraph.toml
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--mcp` | Write a ready-to-run FastMCP server under `--output/mcp_server/` |
-| `--skill` | Write `SKILL.md` into the graph root (schema introspection + operation docs) |
+| `--mcp` | Write a ready-to-run FastMCP server under `<output>/mcp_server/` |
+| `--skill` | Write `<output>/maggraph-skill/SKILL.md` (schema introspection + operation docs) |
+| `--read-only` | Generate an MCP server without `create_node`, `update_node`, and `delete_node` |
 | `--output` | Destination directory (default: `.`) |
+
+The index skips documentation files named `SKILL.md`, `README.md`, `AGENTS.md`, or
+`CLAUDE.md` that are not nodes (no node frontmatter), so a stray `SKILL.md` in the
+graph root no longer stops the graph from opening.
 
 ### ui
 
@@ -740,17 +746,27 @@ Creates:
 agent/
 ├── mcp_server/
 │   ├── server.py          ← FastMCP server, wired to maggraph Python package
-│   ├── requirements.txt   ← fastmcp
+│   ├── requirements.txt   ← fastmcp + maggraph (published bindings on PyPI)
 │   └── README.md
-└── SKILL.md               ← Machine-readable graph schema + operation docs
+└── maggraph-skill/
+    └── SKILL.md           ← Machine-readable graph schema + operation docs
 ```
+
+Nothing is written into the graph root.
 
 **Install and run:**
 
 ```bash
-pip install maggraph fastmcp
+pip install -r agent/mcp_server/requirements.txt
 export MAGGRAPH_CONFIG="/absolute/path/to/maggraph.toml"
 python agent/mcp_server/server.py
+```
+
+**Read-only server:** add `--read-only` to generate a server that exposes only
+`list_nodes`, `get_node`, and `traverse_graph`, with no editing of generated code:
+
+```bash
+maggraph scaffold --mcp --skill --read-only --output ./agent --config maggraph.toml
 ```
 
 **Available MCP tools:**
@@ -760,9 +776,9 @@ python agent/mcp_server/server.py
 | `list_nodes` | Return all indexed node ids |
 | `get_node` | Full node as Markdown (frontmatter + body) |
 | `traverse_graph` | BFS/DFS traversal report |
-| `create_node` | Write a new node to disk and index |
-| `update_node` | Replace node body (frontmatter preserved) |
-| `delete_node` | Remove node from disk and index |
+| `create_node` | Write a new node to disk and index (omitted with `--read-only`) |
+| `update_node` | Replace node body, frontmatter preserved (omitted with `--read-only`) |
+| `delete_node` | Remove node from disk and index (omitted with `--read-only`) |
 
 **Claude Desktop / Cursor config:**
 

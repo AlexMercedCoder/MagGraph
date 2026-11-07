@@ -110,7 +110,8 @@ fn init_query_scaffold_end_to_end() {
         .success();
 
     assert!(scaffold_out.join("mcp_server/server.py").is_file());
-    assert!(dir.path().join("knowledge_graph/SKILL.md").is_file());
+    assert!(scaffold_out.join("maggraph-skill/SKILL.md").is_file());
+    assert!(!dir.path().join("knowledge_graph/SKILL.md").exists());
 }
 
 #[test]

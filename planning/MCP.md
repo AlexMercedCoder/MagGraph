@@ -7,17 +7,20 @@ Phase 8 agent artifacts: a FastMCP server scaffold generated from your graph sch
 From the repository root (or your graph project):
 
 ```bash
-maggraph scaffold --mcp --skill --config maggraph.toml
+maggraph scaffold --mcp --skill --output ./agent --config maggraph.toml
 ```
 
-This writes:
+This writes, under `--output` (default `.`), and nothing into the graph root:
 
 | Path | Purpose |
 |------|---------|
 | `mcp_server/server.py` | FastMCP server with graph tools |
-| `mcp_server/requirements.txt` | `fastmcp` dependency |
+| `mcp_server/requirements.txt` | `fastmcp` and the published `maggraph` bindings |
 | `mcp_server/README.md` | Setup and tool list |
-| `SKILL.md` | Machine-readable agent manual (with `--skill`) |
+| `maggraph-skill/SKILL.md` | Machine-readable agent manual (with `--skill`) |
+
+Add `--read-only` to generate a server without the `create_node`, `update_node`, and
+`delete_node` tools (the generated README and `SKILL.md` list only the read tools).
 
 Regenerate after adding nodes or changing edge patterns so tool docs stay in sync.
 
@@ -27,9 +30,12 @@ Install the published Python package and FastMCP in an isolated environment:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-python -m pip install "maggraph>=0.4.1"
-pip install -r /path/to/your/graph/mcp_server/requirements.txt
+pip install -r ./agent/mcp_server/requirements.txt   # fastmcp + maggraph from PyPI
 ```
+
+To use a MagGraph source checkout instead of the PyPI release, run
+`maturin develop --release --features python-ext` in the repository's `python/`
+directory and drop the `maggraph` line from `requirements.txt`.
 
 ## Run (stdio)
 
@@ -47,9 +53,9 @@ python mcp_server/server.py
 | `list_nodes` | Indexed node ids |
 | `get_node` | Node as Markdown (frontmatter + body) |
 | `traverse_graph` | BFS/DFS traversal report |
-| `create_node` | New `{id}.md` node |
-| `update_node` | Replace body, keep frontmatter |
-| `delete_node` | Remove node from disk and index |
+| `create_node` | New `{id}.md` node (omitted with `--read-only`) |
+| `update_node` | Replace body, keep frontmatter (omitted with `--read-only`) |
+| `delete_node` | Remove node from disk and index (omitted with `--read-only`) |
 
 ## Cursor / Claude Desktop
 
@@ -91,4 +97,4 @@ See [`TESTING.md`](./TESTING.md) and [`BACKLOG.md`](./BACKLOG.md).
 
 - [`planning/PYTHON.md`](./PYTHON.md) — Python API reference
 - [`planning/CLI.md`](./CLI.md) — `scaffold` and `init --skill`
-- [`SKILL.md`](../SKILL.md) — only after scaffold; lives in your graph root
+- `SKILL.md` — only after `scaffold --skill`; written to `<output>/maggraph-skill/SKILL.md`

@@ -136,12 +136,13 @@ remote_sources = [
 ## MCP server scaffold
 
 ```bash
-maggraph scaffold --mcp --output ./mcp_server
+maggraph scaffold --mcp --output ./agent
 ```
 
-Generates a ready-to-run FastMCP server at `./mcp_server/server.py` wired to
-your graph index — expose `list_nodes`, `read_node`, `traverse`, `create_node`,
-and `delete_node` as MCP tools with one command.
+Generates a ready-to-run FastMCP server at `./agent/mcp_server/server.py` wired to
+your graph index — expose `list_nodes`, `get_node`, `traverse_graph`, `create_node`,
+`update_node`, and `delete_node` as MCP tools with one command. Add `--read-only`
+to leave out the write tools, and `--skill` to write `./agent/maggraph-skill/SKILL.md`.
 
 ---
 

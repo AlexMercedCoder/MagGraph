@@ -2,8 +2,9 @@ use std::path::PathBuf;
 
 use clap::Args;
 use maggraph::{
-    agent::{GraphSchema, McpScaffoldContext, SkillRenderContext},
-    write_mcp_scaffold, write_skill_md, GraphIndex, ResolvedConfig, Result,
+    agent::{GraphSchema, McpScaffoldContext, ScaffoldOptions, SkillRenderContext},
+    write_mcp_scaffold_with, write_skill_md_with, GraphIndex, ResolvedConfig, Result,
+    SKILL_DIR_NAME,
 };
 
 #[derive(Debug, Args)]
@@ -16,12 +17,16 @@ pub struct ScaffoldArgs {
     #[arg(long, default_value = ".")]
     pub output: PathBuf,
 
-    /// Also write SKILL.md into the graph root
+    /// Also write SKILL.md under the output directory (maggraph-skill/SKILL.md)
     #[arg(long)]
     pub skill: bool,
+
+    /// Generate a read-only MCP server (omit create_node, update_node, delete_node)
+    #[arg(long)]
+    pub read_only: bool,
 }
 
-#[tracing::instrument(skip_all, fields(mcp = args.mcp, skill = args.skill))]
+#[tracing::instrument(skip_all, fields(mcp = args.mcp, skill = args.skill, read_only = args.read_only))]
 pub fn run(resolved: &ResolvedConfig, args: &ScaffoldArgs) -> Result<()> {
     if !args.mcp && !args.skill {
         return Err(maggraph::MagGraphError::ConfigValidation(
@@ -30,7 +35,19 @@ pub fn run(resolved: &ResolvedConfig, args: &ScaffoldArgs) -> Result<()> {
     }
 
     let index = GraphIndex::open(&resolved.root_path)?;
+    for skipped in index.skipped_files() {
+        eprintln!(
+            "note: skipped non-node file {} ({})",
+            skipped.relative_path.display(),
+            skipped.reason
+        );
+    }
     let schema = GraphSchema::introspect(&index)?;
+    let options = if args.read_only {
+        ScaffoldOptions::read_only()
+    } else {
+        ScaffoldOptions::default()
+    };
 
     let skill_ctx = SkillRenderContext {
         graph_root: &resolved.root_path,
@@ -46,14 +63,15 @@ pub fn run(resolved: &ResolvedConfig, args: &ScaffoldArgs) -> Result<()> {
             config_path: &resolved.config_path,
             schema: &schema,
         };
-        write_mcp_scaffold(&mcp_dir, &mcp_ctx)?;
+        write_mcp_scaffold_with(&mcp_dir, &mcp_ctx, options)?;
         tracing::info!(path = %mcp_dir.display(), "wrote MCP server scaffold");
         println!("MCP scaffold: {}", mcp_dir.display());
     }
 
     if args.skill {
-        let skill_path = resolved.root_path.join("SKILL.md");
-        write_skill_md(&skill_path, &schema, &skill_ctx)?;
+        // Keep generated docs out of the graph root: a SKILL.md there is not a node.
+        let skill_path = args.output.join(SKILL_DIR_NAME).join("SKILL.md");
+        write_skill_md_with(&skill_path, &schema, &skill_ctx, options)?;
         tracing::info!(path = %skill_path.display(), "wrote SKILL.md");
         println!("SKILL.md: {}", skill_path.display());
     }
