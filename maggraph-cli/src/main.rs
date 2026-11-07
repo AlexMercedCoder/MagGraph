@@ -1,3 +1,7 @@
+// Clap uses these doc comments verbatim as `--help` text, so `[sync]` (the
+// maggraph.toml section name) must stay unescaped; it is not an intra-doc link.
+#![allow(rustdoc::broken_intra_doc_links)]
+
 mod cmd;
 
 use std::io;

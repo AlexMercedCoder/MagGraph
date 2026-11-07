@@ -1,6 +1,6 @@
 # MagGraph Support Matrix
 
-**Last verified:** 2026-08-09 against release 0.4.1.
+**Last verified:** 2026-11-07 against release 0.4.2.
 
 ## Runtime And Distribution
 

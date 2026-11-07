@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-07
+
 ### Added
 
 - Added `maggraph scaffold --read-only`, which generates an MCP server without the `create_node`, `update_node`, and `delete_node` tools, and documents only the read tools in the generated README and `SKILL.md`.
@@ -136,6 +138,7 @@ First public release — local markdown graph, lakehouse pointers, Git sync, CLI
 - Planning folder with architecture, implementation plan, and phase progress tracker.
 - `planning/SECURITY.md`, `planning/BENCHMARKS.md`, and per-feature guides (CLI, Python, MCP, UI, sync, lakehouse).
 
+[0.4.2]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.4.2
 [0.4.1]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.4.1
 [0.4.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.4.0
 [0.3.0]: https://github.com/AlexMercedCoder/MagGraph/releases/tag/v0.3.0
