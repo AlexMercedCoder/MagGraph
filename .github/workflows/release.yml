@@ -52,7 +52,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.11", "3.12", "3.13", "3.14"]
+        # The wheel is abi3-py39, so it serves 3.9 whichever Python builds it;
+        # GitHub's current Ubuntu runners no longer provide 3.9 itself.
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 

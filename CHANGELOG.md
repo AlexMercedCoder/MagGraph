@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Release workflows: macOS wheels build on `macos-15` (GitHub no longer supports `macos-14` runners), and the GitHub Release wheel matrix no longer asks for Python 3.9, which current Ubuntu runners lack; the abi3 wheel still supports 3.9. The PyPI workflow can also be started by hand to rebuild wheels.
+
 ## [0.4.2] - 2026-11-07
 
 ### Added

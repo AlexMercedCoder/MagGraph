@@ -5,6 +5,8 @@ on:
     tags:
       - "v*"
   # Dry-run on every PR: build wheels but do NOT publish.
+  # Manual rebuild of the wheels; the publish job still runs only for tags.
+  workflow_dispatch:
   pull_request:
     paths:
       - "python/**"
@@ -36,11 +38,11 @@ jobs:
             manylinux: manylinux_2_28
             rustflags: ""
           # macOS (Intel + Apple Silicon)
-          - runner: macos-14
+          - runner: macos-15
             target: x86_64-apple-darwin
             manylinux: ""
             rustflags: ""
-          - runner: macos-14
+          - runner: macos-15
             target: aarch64-apple-darwin
             manylinux: ""
             rustflags: ""
