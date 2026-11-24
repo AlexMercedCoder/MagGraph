@@ -144,3 +144,7 @@ Use the GitHub issue tracker. Include:
 ## License
 
 MagGraph is licensed under the [Apache 2.0 License](../LICENSE).
+
+## Maintenance
+
+[Maintenance findings, acceptance checks and completion log](planning/maintenance.md).
