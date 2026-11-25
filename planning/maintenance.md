@@ -6,8 +6,8 @@ Claim a row by entering your name or task ID and setting the status to **In prog
 
 | ID | Priority | Status | Owner | Fix and verification |
 | --- | --- | --- | --- | --- |
-| MG-CURSOR | P2 | Open | — | — |
-| MG-Q3 | P2 | Open | — | — |
+| MG-CURSOR | P2 | Done | — | `f2d3b7a`. Built the 0.4.2 wheel and passed 34 binding and contract tests, including the same-second cursor test. |
+| MG-Q3 | P2 | Blocked | — | `f2d3b7a`. Added a Windows-only file sharing and retry regression. Requires a native Windows runner. |
 
 ### MG-CURSOR · Document and test safe polling at the one-second change boundary
 
