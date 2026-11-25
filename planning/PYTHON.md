@@ -146,3 +146,7 @@ Python bindings expose `LakehouseReader` and external content resolution.
 | MCP scaffold smoke and CRUD | Keep generated server tests aligned with scaffold changes |
 
 See [`TESTING.md`](./TESTING.md), [`BACKLOG.md`](./BACKLOG.md), [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md).
+
+### Polling for changed nodes
+
+`changed_since(unix)` compares whole-second modification times to an exclusive cursor. If you advance the cursor to second T, query with T − 1 on the next poll to include edits made later in second T. Deduplicate by node ID and a content digest. A timestamp alone cannot distinguish multiple edits to that node within the same second.

@@ -589,6 +589,48 @@ links: ["welcome"]
         .expect("write getting_started");
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn locked_destination_preserves_node_until_retry() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let temp = TempDir::new().expect("temp dir");
+        let root = temp.path().join("graph");
+        write_example_graph(&root);
+        let path = root.join("welcome.md");
+        let mut index = GraphIndex::open(&root).expect("open index");
+        let original = fs::read(&path).expect("read original");
+        let held = fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0x1 | 0x2) // FILE_SHARE_READ | FILE_SHARE_WRITE
+            .open(&path)
+            .expect("hold destination without delete sharing");
+
+        let mut updated = index.read_node("welcome").expect("read node");
+        updated.body = "Replacement body".into();
+        assert!(index.update_node(updated.clone()).is_err());
+        assert_eq!(fs::read(&path).expect("read after failure"), original);
+        assert!(index
+            .read_node("welcome")
+            .expect("read retained node")
+            .body
+            .contains("Welcome"));
+        drop(held);
+
+        index
+            .update_node(updated)
+            .expect("retry after closing destination");
+        let reopened = GraphIndex::open(&root).expect("reopen index");
+        assert_eq!(
+            reopened
+                .read_node("welcome")
+                .expect("read new node")
+                .body
+                .trim(),
+            "Replacement body"
+        );
+    }
+
     #[test]
     fn create_node_rejects_path_traversal() {
         let temp = TempDir::new().expect("temp dir");

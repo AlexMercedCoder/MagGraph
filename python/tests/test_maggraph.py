@@ -318,3 +318,22 @@ async def test_lakehouse_reader_async(tmp_path: Path) -> None:
 
     assert result.node.id == "note"
     assert result.content.kind == "local"
+
+
+def test_changed_since_overlap_preserves_same_second_update(tmp_path: Path) -> None:
+    import os
+    import shutil
+
+    graph = tmp_path / "graph"
+    shutil.copytree(BASIC_GRAPH, graph)
+    index = maggraph.open_index(str(graph))
+    path = graph / "cursor.md"
+    second = 1_700_000_000
+    for offset, text in [(100_000_000, "first"), (900_000_000, "second")]:
+        path.write_text(f"---\nid: cursor\ntype: note\n---\n{text}\n", encoding="utf-8")
+        timestamp = second * 1_000_000_000 + offset
+        os.utime(path, ns=(timestamp, timestamp))
+        index.update_file("cursor.md")
+        assert "cursor" not in {change["id"] for change in index.changed_since(second)}
+        assert "cursor" in {change["id"] for change in index.changed_since(second - 1)}
+        assert text in index.read_node("cursor").body
