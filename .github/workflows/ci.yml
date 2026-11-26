@@ -48,6 +48,21 @@ jobs:
           name: coverage-lcov
           path: lcov.info
 
+  windows-locked-file:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check recovery when Windows denies file replacement
+        shell: pwsh
+        run: |
+          $output = cargo test --locked -p maggraph --lib locked_destination_preserves_node_until_retry
+          $output
+          if ($LASTEXITCODE -ne 0 -or -not ($output -match '1 passed; 0 failed')) {
+            exit 1
+          }
+
   benchmark:
     runs-on: ubuntu-latest
     steps:
